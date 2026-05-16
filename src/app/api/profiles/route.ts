@@ -3,6 +3,7 @@ import { db, schema } from '@/db';
 import { and, eq } from 'drizzle-orm';
 import { requireUser } from '@/lib/auth-helpers';
 import { ensureProfile } from '@/lib/profile';
+import { ensureBenchmarkAssetExists, fetchHistoricalPrices } from '@/lib/prices';
 
 export async function GET() {
   const user = await requireUser();
@@ -17,15 +18,30 @@ export async function PATCH(request: NextRequest) {
   const user = await requireUser();
   if (user instanceof NextResponse) return user;
 
-  const { id, name } = await request.json();
-  if (!id || !name?.trim()) {
-    return NextResponse.json({ error: 'ID and name are required' }, { status: 400 });
+  const { id, name, benchmarkSymbol } = await request.json();
+  if (!id) {
+    return NextResponse.json({ error: 'ID is required' }, { status: 400 });
+  }
+
+  const updateSet: Partial<typeof schema.profiles.$inferInsert> = {};
+  if (name?.trim()) updateSet.name = name.trim();
+  if (benchmarkSymbol?.trim()) updateSet.benchmarkSymbol = benchmarkSymbol.trim().toUpperCase();
+
+  if (benchmarkSymbol?.trim()) {
+    const symbol = benchmarkSymbol.trim().toUpperCase();
+    const assetId = await ensureBenchmarkAssetExists(symbol);
+    // Backfill 2 years of prices for the benchmark to ensure history works
+    const twoYearsAgo = new Date();
+    twoYearsAgo.setFullYear(twoYearsAgo.getFullYear() - 2);
+    const startDate = twoYearsAgo.toISOString().split('T')[0];
+    await fetchHistoricalPrices(assetId, symbol, symbol.endsWith('.AX'), startDate, '1d');
   }
 
   const result = await db.update(schema.profiles)
-    .set({ name: name.trim() })
+    .set(updateSet)
     .where(and(eq(schema.profiles.id, id), eq(schema.profiles.userId, user.id)))
     .returning({ id: schema.profiles.id });
+
   if (result.length === 0) {
     return NextResponse.json({ error: 'Profile not found' }, { status: 404 });
   }

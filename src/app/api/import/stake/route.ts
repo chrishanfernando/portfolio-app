@@ -56,7 +56,7 @@ export async function POST(request: NextRequest) {
     const previewRows: { date: string; ticker: string; action: string; quantity: number; unitPrice: number; total: number; status: string }[] = [];
     let imported = 0;
     let skipped = 0;
-    let corrected = 0;
+    const corrected = 0;
 
     for (const tx of parsed) {
       const assetId = assetIdMap.get(tx.assetSymbol);

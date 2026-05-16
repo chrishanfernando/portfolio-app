@@ -155,9 +155,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       </aside>
 
       {/* Main content */}
-      <main className="md:pl-56 pb-20 md:pb-0 pt-12 md:pt-0">
-        <div className="max-w-7xl mx-auto p-4 md:p-6">{children}</div>
-        <div className="max-w-7xl mx-auto px-4 md:px-6 pb-6 text-xs text-muted-foreground">
+      <main className="md:pl-56 pb-20 md:pb-0 pt-12 md:pt-0 min-h-screen flex flex-col">
+        <div className="max-w-7xl mx-auto p-4 md:p-6 w-full flex-1">{children}</div>
+        <div className="max-w-7xl mx-auto w-full px-4 md:px-6 pb-6 text-xs text-muted-foreground mt-auto">
           <p className="mb-1">Informational only — not financial advice. Verify all figures with your broker.</p>
           <div className="flex gap-3">
             <Link href="/disclaimer" className="hover:text-foreground">Disclaimer</Link>

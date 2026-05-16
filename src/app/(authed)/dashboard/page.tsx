@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { AppShell } from '@/components/layout/app-shell';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -9,7 +9,7 @@ import Link from 'next/link';
 import { toast } from 'sonner';
 import { TimeFrameFilter, filterByTimeFrame, type TimeFrame } from '@/components/time-frame-filter';
 import { InlineSelect } from '@/components/inline-select';
-import { PieChart, Pie, Cell, Tooltip as PieTooltip, ResponsiveContainer } from 'recharts';
+import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
 import { ZoomableChart } from '@/components/zoomable-chart';
 import { AnimatedNumber } from '@/components/animated-number';
 import { useProfile } from '@/components/profile-context';
@@ -23,6 +23,9 @@ interface DashboardData {
     profitLoss: number;
     returnPct: number;
     cagr: number;
+    benchmarkReturnPct?: number;
+    alpha?: number;
+    benchmarkSymbol?: string;
     holdings: Array<{
       assetId: number;
       displayTicker: string;
@@ -38,7 +41,7 @@ interface DashboardData {
     }>;
     categoryBreakdown: Array<{ category: string; value: number; pct: number }>;
   };
-  history: Array<{ date: string; value: number; cost: number }>;
+  history: Array<{ date: string; value: number; cost: number; benchmarkValue?: number }>;
 }
 
 export default function DashboardPage() {
@@ -52,8 +55,9 @@ export default function DashboardPage() {
   const [platforms, setPlatforms] = useState<string[]>([]);
   const [categories, setCategories] = useState<string[]>([]);
   const [driftCategories, setDriftCategories] = useState<string[]>([]);
+  const [activeCategoryIdx, setActiveCategoryIdx] = useState<number | null>(null);
 
-  async function fetchData() {
+  const fetchData = useCallback(async () => {
     try {
       const [dashRes, optsRes, rebalRes] = await Promise.all([
         profileFetch('/api/dashboard'),
@@ -89,7 +93,7 @@ export default function DashboardPage() {
     } finally {
       setLoading(false);
     }
-  }
+  }, [profileFetch]);
 
   async function updateAsset(assetId: number, field: 'platform' | 'category', value: string) {
     await profileFetch(`/api/assets/${assetId}`, {
@@ -145,7 +149,7 @@ export default function DashboardPage() {
     }, 60_000);
 
     return () => clearInterval(interval);
-  }, [activeProfileId]);
+  }, [activeProfileId, fetchData, profileFetch]);
 
   if (loading) return <AppShell><div className="flex items-center justify-center h-64"><p className="text-muted-foreground">Loading...</p></div></AppShell>;
 
@@ -199,7 +203,7 @@ export default function DashboardPage() {
       )}
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-6">
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm text-muted-foreground flex items-center gap-1">
@@ -251,6 +255,20 @@ export default function DashboardPage() {
         </Card>
         <Card>
           <CardHeader className="pb-2">
+            <CardTitle className="text-sm text-muted-foreground flex items-center gap-1">
+              {(s?.alpha || 0) >= 0 ? <TrendingUp className="h-4 w-4 text-green-500" /> : <TrendingDown className="h-4 w-4 text-red-500" />}
+              Alpha
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className={`text-2xl font-bold ${(s?.alpha || 0) >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+              <AnimatedNumber value={`${(s?.alpha || 0) > 0 ? '+' : ''}${s?.alpha?.toFixed(1) || '0.0'}%`} />
+            </p>
+            <p className="text-[10px] text-muted-foreground uppercase mt-1">Vs Benchmark{s?.benchmarkSymbol ? ` · ${s.benchmarkSymbol}` : ''}</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
             <CardTitle className="text-sm text-muted-foreground">CAGR</CardTitle>
           </CardHeader>
           <CardContent>
@@ -274,8 +292,9 @@ export default function DashboardPage() {
               lines={[
                 { dataKey: 'value', stroke: '#3b82f6', strokeWidth: 2, name: 'Value' },
                 { dataKey: 'cost', stroke: '#666', strokeWidth: 1, strokeDasharray: '5 5', name: 'Cost Basis' },
+                { dataKey: 'benchmarkValue', stroke: '#f59e0b', strokeWidth: 1.5, name: 'Benchmark' },
               ]}
-              yFormatter={(v) => `$${(v / 1000).toFixed(0)}k`}
+              yFormatter={(v) => v >= 1000 ? `$${(v / 1000).toFixed(v >= 10000 ? 0 : 1)}k` : `$${v.toFixed(0)}`}
               tooltipFormatter={(v) => [`$${Number(v).toLocaleString(undefined, { maximumFractionDigits: 0 })}`, '']}
             />
           </CardContent>
@@ -286,27 +305,73 @@ export default function DashboardPage() {
             <CardTitle>Allocation by Category</CardTitle>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <PieChart>
-                <Pie
-                  data={s?.categoryBreakdown}
-                  dataKey="value"
-                  nameKey="category"
-                  cx="50%"
-                  cy="50%"
-                  outerRadius={100}
-                  startAngle={90}
-                  endAngle={-270}
-                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                  label={((props: any) => `${props.name || ''} ${((props.percent || 0) * 100).toFixed(0)}%`) as any}
-                >
-                  {s?.categoryBreakdown.map((_, i) => (
-                    <Cell key={i} fill={COLORS[i % COLORS.length]} />
-                  ))}
-                </Pie>
-                <PieTooltip formatter={(v) => `$${Number(v).toLocaleString(undefined, { maximumFractionDigits: 0 })}`} />
-              </PieChart>
-            </ResponsiveContainer>
+            <div className="flex flex-col sm:flex-row items-center gap-4">
+              <div className="relative w-full sm:w-1/2" style={{ height: 240 }}>
+                <ResponsiveContainer width="100%" height="100%" minWidth={180}>
+                  <PieChart>
+                    <Pie
+                      data={s?.categoryBreakdown}
+                      dataKey="value"
+                      nameKey="category"
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={55}
+                      outerRadius={90}
+                      paddingAngle={1}
+                      startAngle={90}
+                      endAngle={-270}
+                      onMouseEnter={(_, idx) => setActiveCategoryIdx(idx)}
+                      onMouseLeave={() => setActiveCategoryIdx(null)}
+                    >
+                      {s?.categoryBreakdown.map((_, i) => (
+                        <Cell
+                          key={i}
+                          fill={COLORS[i % COLORS.length]}
+                          stroke="none"
+                          opacity={activeCategoryIdx === null || activeCategoryIdx === i ? 1 : 0.35}
+                          style={{ transition: 'opacity 150ms' }}
+                        />
+                      ))}
+                    </Pie>
+                  </PieChart>
+                </ResponsiveContainer>
+                {activeCategoryIdx !== null && s?.categoryBreakdown[activeCategoryIdx] && (
+                  <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center text-center px-4">
+                    <span
+                      className="text-sm font-medium truncate max-w-full"
+                      style={{ color: COLORS[activeCategoryIdx % COLORS.length] }}
+                    >
+                      {s.categoryBreakdown[activeCategoryIdx].category}
+                    </span>
+                    <span
+                      className="text-base font-semibold tabular-nums"
+                      style={{ color: COLORS[activeCategoryIdx % COLORS.length] }}
+                    >
+                      ${Number(s.categoryBreakdown[activeCategoryIdx].value).toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                    </span>
+                  </div>
+                )}
+              </div>
+              <ul className="w-full sm:w-1/2 space-y-1.5 text-sm">
+                {s?.categoryBreakdown.map((item, i) => (
+                  <li
+                    key={item.category}
+                    className="flex items-center gap-2 cursor-default"
+                    onMouseEnter={() => setActiveCategoryIdx(i)}
+                    onMouseLeave={() => setActiveCategoryIdx(null)}
+                  >
+                    <span
+                      className="inline-block h-2.5 w-2.5 rounded-sm shrink-0"
+                      style={{ backgroundColor: COLORS[i % COLORS.length] }}
+                    />
+                    <span className="truncate flex-1">{item.category}</span>
+                    <span className="tabular-nums text-muted-foreground">
+                      {item.pct.toFixed(1)}%
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </div>
           </CardContent>
         </Card>
       </div>

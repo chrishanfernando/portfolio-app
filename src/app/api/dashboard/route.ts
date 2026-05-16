@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { calculatePortfolioSummary, getPortfolioValueHistory } from '@/lib/calculations';
+import { calculatePortfolioSummary, getPortfolioValueHistory, getBenchmarkValueHistory } from '@/lib/calculations';
 import { requireUser } from '@/lib/auth-helpers';
 import { resolveProfileId } from '@/lib/profile';
 
@@ -11,12 +11,20 @@ export async function GET(request: NextRequest) {
     const profileId = await resolveProfileId(request, user.id);
     if (profileId instanceof NextResponse) return profileId;
 
-    const [summary, history] = await Promise.all([
+    const [summary, history, benchmark] = await Promise.all([
       calculatePortfolioSummary(profileId),
       getPortfolioValueHistory(profileId),
+      getBenchmarkValueHistory(profileId),
     ]);
 
-    return NextResponse.json({ summary, history });
+    // Merge benchmark history into main history
+    const mergedHistory = history.map(h => {
+      // Find closest benchmark value on or before this date
+      const bh = benchmark.history.filter(b => b.date <= h.date).pop();
+      return { ...h, benchmarkValue: bh?.value };
+    });
+
+    return NextResponse.json({ summary, history: mergedHistory });
   } catch (error) {
     console.error('Dashboard error:', error);
     return NextResponse.json({ error: 'Failed to load dashboard' }, { status: 500 });

@@ -1,6 +1,6 @@
 import YahooFinance from 'yahoo-finance2';
 import { db, schema } from '@/db';
-import { eq, and } from 'drizzle-orm';
+import { eq, and, or } from 'drizzle-orm';
 import { format } from 'date-fns';
 
 const yf = new YahooFinance({ suppressNotices: ['ripHistorical', 'yahooSurvey'] });
@@ -15,8 +15,32 @@ async function getAudUsdRate(): Promise<number> {
   }
 }
 
+export async function ensureBenchmarkAssetExists(yahooSymbol: string): Promise<number> {
+  const existing = await db.select().from(schema.assets)
+    .where(eq(schema.assets.yahooSymbol, yahooSymbol))
+    .limit(1);
+
+  if (existing.length > 0) {
+    return existing[0].id;
+  }
+
+  const result = await db.insert(schema.assets).values({
+    profileId: 1,
+    symbol: yahooSymbol.split('.')[0],
+    name: `Benchmark: ${yahooSymbol}`,
+    displayTicker: yahooSymbol.split('.')[0],
+    yahooSymbol,
+    category: 'Benchmark',
+    isActive: false,
+  }).returning({ id: schema.assets.id });
+
+  return result[0].id;
+}
+
 export async function fetchCurrentPrices(): Promise<{ symbol: string; priceAud: number; priceUsd?: number; fxRate?: number }[]> {
-  const assets = await db.select().from(schema.assets).where(eq(schema.assets.isActive, true));
+  const assets = await db.select().from(schema.assets).where(
+    or(eq(schema.assets.isActive, true), eq(schema.assets.category, 'Benchmark'))
+  );
   const audUsdRate = await getAudUsdRate();
   const results: { symbol: string; priceAud: number; priceUsd?: number; fxRate?: number }[] = [];
   const today = format(new Date(), 'yyyy-MM-dd');

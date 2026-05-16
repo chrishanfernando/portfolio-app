@@ -18,8 +18,9 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { toast } from 'sonner';
-import { Trash2 } from 'lucide-react';
+import { Trash2, Info } from 'lucide-react';
 import { signOut, deleteUser } from '@/lib/auth-client';
+import { useProfile } from '@/components/profile-context';
 
 interface CmcMapping {
   id: number;
@@ -31,16 +32,22 @@ interface CmcMapping {
 interface Profile {
   id: number;
   name: string;
+  benchmarkSymbol?: string;
 }
 
 export default function SettingsPage() {
   const router = useRouter();
+  const { activeProfileId, profileFetch } = useProfile();
   const [email, setEmail] = useState('');
   const [emailNotifications, setEmailNotifications] = useState(false);
   const [accountEmail, setAccountEmail] = useState('');
   const [lastPriceFetch, setLastPriceFetch] = useState('');
   const [lastRebalanceCheck, setLastRebalanceCheck] = useState('');
   const [lastEmailPoll, setLastEmailPoll] = useState('');
+
+  // Benchmark
+  const [benchmarkSymbol, setBenchmarkSymbol] = useState('');
+  const [savingBenchmark, setSavingBenchmark] = useState(false);
 
   // CMC account mappings
   const [mappings, setMappings] = useState<CmcMapping[]>([]);
@@ -72,6 +79,17 @@ export default function SettingsPage() {
     loadMappings();
   }, []);
 
+  useEffect(() => {
+    if (activeProfileId) {
+      profileFetch('/api/profiles')
+        .then(r => r.json())
+        .then(data => {
+          const active = data.find((p: Profile) => p.id === activeProfileId);
+          if (active) setBenchmarkSymbol(active.benchmarkSymbol || 'VAS.AX');
+        });
+    }
+  }, [activeProfileId, profileFetch]);
+
   async function loadMappings() {
     const res = await fetch('/api/settings/cmc-accounts');
     const data = await res.json();
@@ -79,6 +97,29 @@ export default function SettingsPage() {
     setProfiles(data.profiles || []);
     if (!newProfileId && data.profiles?.length > 0) {
       setNewProfileId(String(data.profiles[0].id));
+    }
+  }
+
+  async function saveBenchmark() {
+    if (!activeProfileId || !benchmarkSymbol.trim()) return;
+    setSavingBenchmark(true);
+    try {
+      const res = await profileFetch('/api/profiles', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: activeProfileId, benchmarkSymbol: benchmarkSymbol.trim() }),
+      });
+      if (res.ok) {
+        toast.success('Benchmark updated');
+        // Trigger a background price fetch to ensure benchmark prices are ready
+        fetch('/api/prices/fetch', { method: 'POST' });
+      } else {
+        toast.error('Failed to update benchmark');
+      }
+    } catch {
+      toast.error('Error saving benchmark');
+    } finally {
+      setSavingBenchmark(false);
     }
   }
 
@@ -228,6 +269,38 @@ export default function SettingsPage() {
                 className="rounded"
               />
               <Label htmlFor="notifications">Enable email notifications</Label>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Portfolio Benchmark</CardTitle>
+            <CardDescription>
+              Select a benchmark index to compare your performance against (e.g. VAS.AX for ASX 200, SPY for S&P 500).
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-center gap-2">
+              <div className="flex-1">
+                <Label htmlFor="benchmark" className="text-xs">Yahoo Finance Symbol</Label>
+                <Input
+                  id="benchmark"
+                  value={benchmarkSymbol}
+                  onChange={(e) => setBenchmarkSymbol(e.target.value.toUpperCase())}
+                  placeholder="e.g. VAS.AX"
+                />
+              </div>
+              <Button onClick={saveBenchmark} disabled={savingBenchmark} className="mt-5">
+                {savingBenchmark ? 'Saving...' : 'Save'}
+              </Button>
+            </div>
+            <div className="flex items-start gap-2 text-xs text-muted-foreground bg-accent/30 p-2 rounded">
+              <Info className="h-4 w-4 shrink-0 mt-0.5" />
+              <p>
+                Changing the benchmark will update your performance charts and Alpha metrics. 
+                Prices for new benchmarks may take a few moments to fetch.
+              </p>
             </div>
           </CardContent>
         </Card>
