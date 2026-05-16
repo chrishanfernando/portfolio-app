@@ -57,10 +57,11 @@ export const auth = betterAuth({
   user: {
     deleteUser: {
       enabled: true,
-      // Cascade portfolio data manually. The auth tables (session, account,
-      // user_settings, profiles) cascade via FK on user.id, but downstream
-      // tables (assets, transactions, prices, categoryTargets,
-      // cmcAccountMappings) reference profiles.id without ON DELETE CASCADE.
+      // Cascade portfolio data manually. The schema declares ON DELETE CASCADE
+      // on profiles.user_id, but the actual SQLite migration added that column
+      // via ALTER TABLE which dropped the cascade clause — so we must delete
+      // profiles (and their children) explicitly before Better Auth attempts
+      // the user delete, or it 500s on a FOREIGN KEY constraint failure.
       beforeDelete: async (user) => {
         const profileRows = await db
           .select({ id: schema.profiles.id })
@@ -82,6 +83,7 @@ export const auth = betterAuth({
         }
         await db.delete(schema.categoryTargets).where(inArray(schema.categoryTargets.profileId, profileIds));
         await db.delete(schema.cmcAccountMappings).where(inArray(schema.cmcAccountMappings.profileId, profileIds));
+        await db.delete(schema.profiles).where(inArray(schema.profiles.id, profileIds));
       },
     },
   },
