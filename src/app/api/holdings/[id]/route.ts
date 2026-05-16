@@ -37,7 +37,7 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
   // Deduplicate by date (keep latest per date)
   const byDate = new Map<string, typeof allPrices[0]>();
   for (const p of allPrices) byDate.set(p.date, p);
-  let priceHistory = Array.from(byDate.values()).sort((a, b) => a.date.localeCompare(b.date));
+  const priceHistory = Array.from(byDate.values()).sort((a, b) => a.date.localeCompare(b.date));
 
   // Calculate holdings for this asset
   let totalQty = 0;

@@ -58,6 +58,7 @@ export const userSettings = sqliteTable('user_settings', {
 export const profiles = sqliteTable('profiles', {
   id: integer('id').primaryKey({ autoIncrement: true }),
   name: text('name').notNull(),
+  benchmarkSymbol: text('benchmark_symbol').default('VAS.AX'),
   createdAt: text('created_at').notNull().default('2024-01-01'),
   userId: text('user_id').references(() => user.id, { onDelete: 'cascade' }),
 });

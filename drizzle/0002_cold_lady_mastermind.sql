@@ -1,0 +1,1 @@
+ALTER TABLE `profiles` ADD `benchmark_symbol` text DEFAULT 'VAS.AX';

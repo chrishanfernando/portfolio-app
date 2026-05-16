@@ -1,5 +1,6 @@
 import { db, schema } from '@/db';
 import { eq, and, desc, asc, inArray } from 'drizzle-orm';
+import { ensureBenchmarkAssetExists } from './prices';
 
 export interface HoldingSnapshot {
   assetId: number;
@@ -26,6 +27,9 @@ export interface PortfolioSummary {
   cagr: number;
   holdings: HoldingSnapshot[];
   categoryBreakdown: { category: string; value: number; pct: number }[];
+  benchmarkReturnPct?: number;
+  alpha?: number;
+  benchmarkSymbol?: string;
 }
 
 export interface ClosedHolding {
@@ -114,10 +118,9 @@ export async function calculateHoldings(profileId?: number): Promise<HoldingSnap
     let holdingCagr = 0;
     const firstTxDate = txs[0]?.date;
     if (firstTxDate && totalCost > 0) {
-      const years = (Date.now() - new Date(firstTxDate).getTime()) / (365.25 * 24 * 60 * 60 * 1000);
-      if (years > 0) {
-        holdingCagr = (Math.pow(marketValue / totalCost, 1 / years) - 1) * 100;
-      }
+      const msPerYear = 365.25 * 24 * 60 * 60 * 1000;
+      const years = Math.max(1 / 365.25, (Date.now() - new Date(firstTxDate).getTime()) / msPerYear);
+      holdingCagr = (Math.pow(marketValue / totalCost, 1 / years) - 1) * 100;
     }
 
     holdings.push({
@@ -218,10 +221,24 @@ export async function calculatePortfolioSummary(profileId?: number): Promise<Por
     if (firstTx && totalCost > 0) {
       const startDate = new Date(firstTx.date);
       const now = new Date();
-      const years = (now.getTime() - startDate.getTime()) / (365.25 * 24 * 60 * 60 * 1000);
-      if (years > 0) {
-        cagr = (Math.pow(totalValue / totalCost, 1 / years) - 1) * 100;
-      }
+      const msPerYear = 365.25 * 24 * 60 * 60 * 1000;
+      const years = Math.max(1 / 365.25, (now.getTime() - startDate.getTime()) / msPerYear);
+      cagr = (Math.pow(totalValue / totalCost, 1 / years) - 1) * 100;
+    }
+  }
+
+  // Alpha / Benchmark Return
+  let benchmarkReturnPct: number | undefined;
+  let alpha: number | undefined;
+  let benchmarkSymbol: string | undefined;
+  if (profileId) {
+    const profileRow = await db.select().from(schema.profiles).where(eq(schema.profiles.id, profileId)).limit(1);
+    benchmarkSymbol = profileRow[0]?.benchmarkSymbol || 'VAS.AX';
+    const { history: benchmarkHistory, costBasis: benchmarkCost } = await getBenchmarkValueHistory(profileId);
+    if (benchmarkHistory.length > 0 && benchmarkCost > 0) {
+      const benchmarkFinalValue = benchmarkHistory[benchmarkHistory.length - 1].value;
+      benchmarkReturnPct = ((benchmarkFinalValue - benchmarkCost) / benchmarkCost) * 100;
+      alpha = returnPct - benchmarkReturnPct;
     }
   }
 
@@ -237,7 +254,7 @@ export async function calculatePortfolioSummary(profileId?: number): Promise<Por
     }))
     .sort((a, b) => b.value - a.value);
 
-  return { totalValue, totalCost, profitLoss, returnPct, cagr, holdings, categoryBreakdown };
+  return { totalValue, totalCost, profitLoss, returnPct, cagr, holdings, categoryBreakdown, benchmarkReturnPct, alpha, benchmarkSymbol };
 }
 
 export async function getPortfolioValueHistory(profileId?: number): Promise<{ date: string; value: number; cost: number }[]> {
@@ -365,4 +382,72 @@ export async function getPortfolioValueHistory(profileId?: number): Promise<{ da
   }
 
   return history;
+}
+
+export async function getBenchmarkValueHistory(profileId: number): Promise<{
+  history: { date: string; value: number }[];
+  costBasis: number;
+}> {
+  const empty = { history: [], costBasis: 0 };
+  const profileResult = await db.select().from(schema.profiles).where(eq(schema.profiles.id, profileId)).limit(1);
+  if (profileResult.length === 0) return empty;
+  const benchmarkSymbol = profileResult[0].benchmarkSymbol || 'VAS.AX';
+
+  // Find or create benchmark asset to ensure we have prices
+  const benchmarkAssetId = await ensureBenchmarkAssetExists(benchmarkSymbol);
+
+  // Get all transactions for this profile
+  const assets = await db.select().from(schema.assets).where(eq(schema.assets.profileId, profileId));
+  const assetIds = assets.map(a => a.id);
+  if (assetIds.length === 0) return empty;
+
+  const allTxs = await db.select().from(schema.transactions)
+    .where(inArray(schema.transactions.assetId, assetIds))
+    .orderBy(asc(schema.transactions.date));
+
+  if (allTxs.length === 0) return empty;
+
+  // Get historical prices for benchmark
+  const prices = await db.select().from(schema.prices)
+    .where(eq(schema.prices.assetId, benchmarkAssetId))
+    .orderBy(asc(schema.prices.date));
+
+  if (prices.length === 0) return empty;
+
+  // Map each tx to the first price on or after its date (handles weekends/holidays).
+  // Txs with no forward-matching price are skipped — and excluded from costBasis so
+  // the return % stays consistent with the value series.
+  const unitChangesByDate = new Map<string, number>();
+  let costBasis = 0;
+  for (const tx of allTxs) {
+    if (tx.action !== 'BUY' && tx.action !== 'SELL') continue;
+    const p = prices.find(pp => pp.date >= tx.date);
+    if (!p) continue;
+    const units = Math.abs(tx.totalAud) / p.priceAud;
+    const delta = tx.action === 'BUY' ? units : -units;
+    unitChangesByDate.set(p.date, (unitChangesByDate.get(p.date) || 0) + delta);
+    costBasis += tx.action === 'BUY' ? Math.abs(tx.totalAud) : -Math.abs(tx.totalAud);
+  }
+
+  const history: { date: string; value: number }[] = [];
+  let shadowUnits = 0;
+
+  const firstApplied = [...unitChangesByDate.keys()].sort()[0];
+  if (!firstApplied) return { history: [], costBasis };
+  const filteredPrices = prices.filter(p => p.date >= firstApplied);
+
+  for (const price of filteredPrices) {
+    const delta = unitChangesByDate.get(price.date);
+    if (delta) shadowUnits += delta;
+    history.push({ date: price.date, value: shadowUnits * price.priceAud });
+  }
+
+  // Add today's value if not already in history
+  const today = new Date().toISOString().split('T')[0];
+  const lastHistory = history[history.length - 1];
+  if (lastHistory && lastHistory.date < today) {
+    history.push({ date: today, value: shadowUnits * filteredPrices[filteredPrices.length - 1].priceAud });
+  }
+
+  return { history, costBasis };
 }

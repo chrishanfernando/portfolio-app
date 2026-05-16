@@ -68,7 +68,7 @@ export async function GET(request: NextRequest) {
         for (const p of prices) byDate.set(p.date, p.priceAud);
       }
 
-      let priceHistory = Array.from(byDate.entries())
+      const priceHistory = Array.from(byDate.entries())
         .map(([date, priceAud]) => ({ date, priceAud }))
         .sort((a, b) => a.date.localeCompare(b.date));
 

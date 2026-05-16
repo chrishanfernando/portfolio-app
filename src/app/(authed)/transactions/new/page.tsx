@@ -3,12 +3,13 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { AppShell } from '@/components/layout/app-shell';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { useProfile } from '@/components/profile-context';
+import { Plus, Search } from 'lucide-react';
 
 interface Asset {
   id: number;
@@ -20,6 +21,10 @@ export default function NewTransactionPage() {
   const router = useRouter();
   const { profileFetch, activeProfileId } = useProfile();
   const [assets, setAssets] = useState<Asset[]>([]);
+  const [isNewAsset, setIsNewAsset] = useState(false);
+  const [categories, setCategories] = useState<string[]>([]);
+  const [platforms, setPlatforms] = useState<string[]>([]);
+  
   const [form, setForm] = useState({
     assetId: '',
     date: new Date().toISOString().split('T')[0],
@@ -31,22 +36,61 @@ export default function NewTransactionPage() {
     comment: '',
   });
 
+  const [newAssetForm, setNewAssetForm] = useState({
+    symbol: '',
+    name: '',
+    yahooSymbol: '',
+    category: '',
+    platform: '',
+  });
+
   useEffect(() => {
-    profileFetch('/api/holdings')
+    profileFetch('/api/assets')
       .then(r => r.json())
-      .then((data: { holdings: Array<{ assetId: number; displayTicker: string; name: string }> }) =>
-        setAssets((data.holdings || []).map(h => ({ id: h.assetId, displayTicker: h.displayTicker, name: h.name })))
-      );
-  }, [activeProfileId]);
+      .then((data: Asset[]) => setAssets(data))
+      .catch(() => setAssets([]));
+
+    profileFetch('/api/assets/options')
+      .then(r => r.json())
+      .then(data => {
+        setCategories(data.categories || []);
+        setPlatforms(data.platforms || []);
+      });
+  }, [activeProfileId, profileFetch]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     try {
-      const res = await fetch('/api/transactions', {
+      let finalAssetId = parseInt(form.assetId);
+
+      if (isNewAsset) {
+        const assetRes = await profileFetch('/api/assets', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            ...newAssetForm,
+            displayTicker: newAssetForm.symbol,
+          }),
+        });
+        if (!assetRes.ok) {
+          const err = await assetRes.json();
+          toast.error(err.error || 'Failed to create asset');
+          return;
+        }
+        const newAsset = await assetRes.json();
+        finalAssetId = newAsset.id;
+      }
+
+      if (isNaN(finalAssetId)) {
+        toast.error('Please select or create an asset');
+        return;
+      }
+
+      const res = await profileFetch('/api/transactions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          assetId: parseInt(form.assetId),
+          assetId: finalAssetId,
           date: form.date,
           action: form.action,
           quantity: parseFloat(form.quantity),
@@ -72,63 +116,151 @@ export default function NewTransactionPage() {
       <h1 className="text-2xl font-bold mb-6">Add Transaction</h1>
       <Card>
         <CardContent className="pt-6">
-          <form onSubmit={handleSubmit} className="space-y-4 max-w-lg">
-            <div>
-              <Label>Asset</Label>
-              <select
-                className="w-full mt-1 bg-background border rounded-md p-2 text-sm"
-                value={form.assetId}
-                onChange={(e) => setForm({ ...form, assetId: e.target.value })}
-                required
-              >
-                <option value="">Select asset...</option>
-                {assets.map(a => (
-                  <option key={a.id} value={a.id}>{a.displayTicker} - {a.name}</option>
-                ))}
-              </select>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label>Date</Label>
-                <Input type="date" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} required />
-              </div>
-              <div>
-                <Label>Action</Label>
-                <select
-                  className="w-full mt-1 bg-background border rounded-md p-2 text-sm"
-                  value={form.action}
-                  onChange={(e) => setForm({ ...form, action: e.target.value })}
+          <form onSubmit={handleSubmit} className="space-y-6 max-w-lg">
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <Label className="text-base font-semibold">Asset Details</Label>
+                <Button 
+                  type="button" 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={() => setIsNewAsset(!isNewAsset)}
+                  className="text-xs text-primary"
                 >
-                  <option value="BUY">BUY</option>
-                  <option value="SELL">SELL</option>
-                </select>
+                  {isNewAsset ? (
+                    <span className="flex items-center gap-1"><Search className="h-3 w-3" /> Select existing</span>
+                  ) : (
+                    <span className="flex items-center gap-1"><Plus className="h-3 w-3" /> Add new asset</span>
+                  )}
+                </Button>
+              </div>
+
+              {isNewAsset ? (
+                <div className="grid grid-cols-2 gap-4 p-4 border rounded-lg bg-accent/10">
+                  <div className="col-span-2">
+                    <Label>Asset Name</Label>
+                    <Input 
+                      placeholder="e.g. Vanguard Australian Shares" 
+                      value={newAssetForm.name} 
+                      onChange={e => setNewAssetForm({...newAssetForm, name: e.target.value})}
+                      required={isNewAsset}
+                    />
+                  </div>
+                  <div>
+                    <Label>Symbol</Label>
+                    <Input 
+                      placeholder="e.g. VAS" 
+                      value={newAssetForm.symbol} 
+                      onChange={e => {
+                        const s = e.target.value.toUpperCase();
+                        setNewAssetForm({...newAssetForm, symbol: s, yahooSymbol: s.includes('.') ? s : `${s}.AX`});
+                      }}
+                      required={isNewAsset}
+                    />
+                  </div>
+                  <div>
+                    <Label>Yahoo Symbol</Label>
+                    <Input 
+                      placeholder="e.g. VAS.AX" 
+                      value={newAssetForm.yahooSymbol} 
+                      onChange={e => setNewAssetForm({...newAssetForm, yahooSymbol: e.target.value.toUpperCase()})}
+                      required={isNewAsset}
+                    />
+                  </div>
+                  <div>
+                    <Label>Category</Label>
+                    <Input 
+                      placeholder="e.g. AU Equities" 
+                      list="categories"
+                      value={newAssetForm.category} 
+                      onChange={e => setNewAssetForm({...newAssetForm, category: e.target.value})}
+                      required={isNewAsset}
+                    />
+                    <datalist id="categories">
+                      {categories.map(c => <option key={c} value={c} />)}
+                    </datalist>
+                  </div>
+                  <div>
+                    <Label>Platform</Label>
+                    <Input 
+                      placeholder="e.g. CMC" 
+                      list="platforms"
+                      value={newAssetForm.platform} 
+                      onChange={e => setNewAssetForm({...newAssetForm, platform: e.target.value})}
+                    />
+                    <datalist id="platforms">
+                      {platforms.map(p => <option key={p} value={p} />)}
+                    </datalist>
+                  </div>
+                </div>
+              ) : (
+                <div>
+                  <select
+                    className="w-full bg-background border rounded-md p-2 text-sm"
+                    value={form.assetId}
+                    onChange={(e) => setForm({ ...form, assetId: e.target.value })}
+                    required={!isNewAsset}
+                  >
+                    <option value="">Select asset...</option>
+                    {assets.map(a => (
+                      <option key={a.id} value={a.id}>{a.displayTicker} - {a.name}</option>
+                    ))}
+                  </select>
+                  {assets.length === 0 && (
+                    <p className="text-xs text-muted-foreground mt-2 italic">
+                      No assets found. Click &quot;Add new asset&quot; above to create one.
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
+
+            <div className="space-y-4 pt-4 border-t">
+              <Label className="text-base font-semibold">Transaction Details</Label>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label>Date</Label>
+                  <Input type="date" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} required />
+                </div>
+                <div>
+                  <Label>Action</Label>
+                  <select
+                    className="w-full mt-1 bg-background border rounded-md p-2 text-sm"
+                    value={form.action}
+                    onChange={(e) => setForm({ ...form, action: e.target.value })}
+                  >
+                    <option value="BUY">BUY</option>
+                    <option value="SELL">SELL</option>
+                  </select>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label>Quantity</Label>
+                  <Input type="number" step="any" value={form.quantity} onChange={(e) => setForm({ ...form, quantity: e.target.value })} required />
+                </div>
+                <div>
+                  <Label>Unit Price (AUD)</Label>
+                  <Input type="number" step="any" value={form.unitPriceAud} onChange={(e) => setForm({ ...form, unitPriceAud: e.target.value })} required />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label>Unit Price (Local, optional)</Label>
+                  <Input type="number" step="any" value={form.unitPriceLocal} onChange={(e) => setForm({ ...form, unitPriceLocal: e.target.value })} />
+                </div>
+                <div>
+                  <Label>FX Rate (optional)</Label>
+                  <Input type="number" step="any" value={form.fxRate} onChange={(e) => setForm({ ...form, fxRate: e.target.value })} />
+                </div>
+              </div>
+              <div>
+                <Label>Comment (optional)</Label>
+                <Input value={form.comment} onChange={(e) => setForm({ ...form, comment: e.target.value })} />
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label>Quantity</Label>
-                <Input type="number" step="any" value={form.quantity} onChange={(e) => setForm({ ...form, quantity: e.target.value })} required />
-              </div>
-              <div>
-                <Label>Unit Price (AUD)</Label>
-                <Input type="number" step="any" value={form.unitPriceAud} onChange={(e) => setForm({ ...form, unitPriceAud: e.target.value })} required />
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label>Unit Price (Local, optional)</Label>
-                <Input type="number" step="any" value={form.unitPriceLocal} onChange={(e) => setForm({ ...form, unitPriceLocal: e.target.value })} />
-              </div>
-              <div>
-                <Label>FX Rate (optional)</Label>
-                <Input type="number" step="any" value={form.fxRate} onChange={(e) => setForm({ ...form, fxRate: e.target.value })} />
-              </div>
-            </div>
-            <div>
-              <Label>Comment (optional)</Label>
-              <Input value={form.comment} onChange={(e) => setForm({ ...form, comment: e.target.value })} />
-            </div>
-            <div className="flex gap-2">
+
+            <div className="flex gap-2 pt-4">
               <Button type="submit">Add Transaction</Button>
               <Button type="button" variant="outline" onClick={() => router.back()}>Cancel</Button>
             </div>
