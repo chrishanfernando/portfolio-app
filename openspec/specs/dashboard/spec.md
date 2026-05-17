@@ -13,7 +13,8 @@ The system SHALL expose a single endpoint that returns everything needed to rend
 - **WHEN** an authenticated client requests the dashboard
 - **THEN** the response is `{ summary, history }` for the active profile
 - **AND** `summary` includes `totalValue`, `totalCost`, `profitLoss`, `returnPct`, `cagr`, `holdings`, `categoryBreakdown`
-- **AND** `history` is the daily portfolio value series suitable for a line chart
+- **AND** when a benchmark series is available, `summary` also includes `benchmarkSymbol`, `benchmarkReturnPct`, and `alpha` (see Benchmarks spec)
+- **AND** `history` is the daily portfolio value series suitable for a line chart, with parallel benchmark values when present
 
 ### Requirement: Empty state
 The system SHALL handle profiles with no transactions gracefully.

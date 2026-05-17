@@ -16,6 +16,8 @@ changes/
 When a change ships:
 
 1. Apply its `specs/<capability>/spec.md` deltas into `openspec/specs/<capability>/spec.md`.
-2. Delete the change folder (or move it into an `archived/` subfolder if you want history outside git log).
+2. Move the folder into [`archived/`](./archived/) (kept so future readers can see the proposal + tasks + delta that drove a capability).
 
 See `../AGENTS.md` for the full workflow.
+
+Already-shipped changes live in [`archived/`](./archived/).
