@@ -91,7 +91,7 @@ This project tracks behaviour in [`openspec/`](./openspec). Specs are the source
 
 - [`openspec/project.md`](./openspec/project.md) — stack, conventions, domain model.
 - [`openspec/AGENTS.md`](./openspec/AGENTS.md) — how to use OpenSpec in this repo (also the brief for AI assistants).
-- [`openspec/specs/<capability>/spec.md`](./openspec/specs) — the current truth, one folder per capability (auth, profiles, assets, transactions, holdings, prices, rebalance, import, dashboard, charts, settings, cron).
+- [`openspec/specs/<capability>/spec.md`](./openspec/specs) — the current truth, one folder per capability (auth, profiles, assets, transactions, holdings, prices, rebalance, import, dashboard, charts, settings, cron, risk-profiles, benchmarks, legal).
 - [`openspec/changes/<change-id>/`](./openspec/changes) — proposed/in-progress changes with proposal, tasks, and a spec delta.
 
 Workflow for non-trivial work:

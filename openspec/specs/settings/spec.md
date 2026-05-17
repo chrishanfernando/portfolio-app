@@ -52,12 +52,29 @@ The system SHALL expose CRUD for the `cmc_account_mappings` table.
 The system SHALL only send email when notifications are enabled and Resend is configured.
 
 #### Scenario: Notification gate
-- **GIVEN** `emailNotifications = true` AND `settings.email` is set AND `RESEND_API_KEY` is set
+- **GIVEN** `emailNotifications = true` AND `settings.email` is set AND `RESEND_API_KEY` is set AND `EMAIL_FROM` is set
 - **THEN** the system MAY send transactional emails (rebalance alerts, etc.)
 
 #### Scenario: Notifications disabled
 - **GIVEN** `emailNotifications = false` OR `email` is empty OR `RESEND_API_KEY` is not set
 - **THEN** the system SHALL NOT attempt to send email and SHALL NOT error
+
+### Requirement: Verified sender domain
+The system SHALL require `EMAIL_FROM` to be set to an address on a domain verified
+in Resend before sending any transactional email. There is no sandbox / unverified
+fallback.
+
+#### Scenario: EMAIL_FROM missing
+- **GIVEN** the email module is loaded and `EMAIL_FROM` is unset
+- **WHEN** any caller invokes the send helper
+- **THEN** the helper throws (or returns an error result) without contacting Resend
+
+#### Scenario: Outbound email headers
+- **WHEN** the system sends transactional email
+- **THEN** the message has both an `html` and a `text` body
+- **AND** if `EMAIL_REPLY_TO` is set, the `Reply-To` header carries that address
+- **AND** for rebalance alerts, if `EMAIL_UNSUBSCRIBE_MAILTO` is set, the message includes
+  `List-Unsubscribe` (mailto) and `List-Unsubscribe-Post: List-Unsubscribe=One-Click` headers
 
 ### Requirement: Cron timestamps
 The system SHALL update `lastPriceFetch`, `lastRebalanceCheck`, and `lastEmailPoll` whenever the corresponding cron endpoint runs to completion.

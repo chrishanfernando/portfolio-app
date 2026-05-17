@@ -104,6 +104,59 @@ single-password installations migrate without forcing a password reset.
 - **THEN** the verifier detects the bcrypt prefix and verifies via `bcryptjs.compare`
 - **AND** the session cookie is issued normally
 
+### Requirement: Account deletion
+The system SHALL allow an authenticated user to delete their own account and all
+owned data via Better Auth's `deleteUser` flow.
+
+#### Scenario: Pre-deletion summary
+- **WHEN** an authenticated user `GET /api/account/summary`
+- **THEN** the response is `{ profiles: <n>, assets: <n>, transactions: <n> }` for data they own
+- **AND** the page uses this to confirm scope before the user submits deletion
+
+#### Scenario: Deletion cascade
+- **WHEN** Better Auth invokes the `beforeDelete` hook for user `U`
+- **THEN** the hook deletes (in order) `prices` and `transactions` for assets under each profile owned by `U`,
+  then `assets`, then `category_targets`, `cmc_account_mappings`, `risk_profiles`, and finally `profiles`
+- **AND** the `user`, `account`, and `session` rows are deleted by Better Auth itself
+- **AND** no rows owned by `U` remain in any user-scoped table
+
+#### Scenario: Auth method probe
+- **WHEN** an authenticated user `GET /api/account/auth-method`
+- **THEN** the response is `{ hasPassword: boolean }` based on whether a `credential` account row exists
+- **AND** the UI uses this to decide whether to require the current password before deletion
+
+### Requirement: Data export
+The system SHALL allow an authenticated user to download a complete JSON export of all data they own.
+
+#### Scenario: GET /api/account/export
+- **WHEN** an authenticated user `GET /api/account/export`
+- **THEN** the response is a JSON document with `schemaVersion: 1`, the user record, `userSettings`,
+  and arrays of every `profile`, `asset`, `transaction`, `price`, `categoryTarget`,
+  `cmcAccountMapping`, and `riskProfile` owned by the user
+- **AND** the `Content-Disposition` header is `attachment; filename="portfolio-export-<userId>-<YYYYMMDD>.json"`
+- **AND** password hashes and other secrets are not included
+
+### Requirement: LAN-friendly origin handling
+The system SHALL accept Better Auth requests from private-network origins so the app is usable from a
+phone or tablet on the same LAN as a self-hosted instance.
+
+#### Scenario: Client base URL inference
+- **WHEN** the auth client (`src/lib/auth-client.ts`) initialises in the browser
+- **THEN** it uses `window.location.origin` as the base URL
+- **AND** a request from `http://192.168.1.42:3000` targets that same host instead of a hardcoded `BETTER_AUTH_URL`
+
+#### Scenario: Trusted-origin allowlist in development
+- **GIVEN** `NODE_ENV !== "production"`
+- **WHEN** Better Auth evaluates the request `Origin` header
+- **THEN** any host matching `localhost`, `127.*`, `10.*`, `192.168.*`, or `172.16.*–172.31.*` is treated as trusted
+- **AND** in production only the configured `BETTER_AUTH_URL` (and any explicit additions) is trusted
+
+#### Scenario: IPv4-first DNS for OAuth token exchange
+- **GIVEN** Node's DNS resolver default is dual-stack
+- **WHEN** the process starts (`next.config.ts`)
+- **THEN** `dns.setDefaultResultOrder("ipv4first")` is invoked so the Google OAuth token-exchange fetch
+  does not hang on IPv6 routes that are unreachable from the host
+
 ### Requirement: Configuration
 The system SHALL load `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`, `GOOGLE_CLIENT_ID`,
 `GOOGLE_CLIENT_SECRET`, `RESEND_API_KEY`, and `EMAIL_FROM` from the environment.
