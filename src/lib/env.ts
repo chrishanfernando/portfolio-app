@@ -2,7 +2,13 @@ import { randomBytes } from 'node:crypto';
 import { z } from 'zod';
 
 const NODE_ENV = (process.env.NODE_ENV ?? 'development') as 'development' | 'test' | 'production';
-const IS_PROD = NODE_ENV === 'production';
+// Next.js evaluates server modules during `next build` to collect page data.
+// Real runtime secrets aren't available there (the build container is
+// intentionally minimal), so skip strict prod validation in that phase only.
+// At server start (`next start`) the phase is 'phase-production-server' and
+// strict validation runs normally.
+const IS_BUILD = process.env.NEXT_PHASE === 'phase-production-build';
+const IS_PROD = NODE_ENV === 'production' && !IS_BUILD;
 
 const nonEmpty = z.string().min(1);
 
