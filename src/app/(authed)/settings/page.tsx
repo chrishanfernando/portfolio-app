@@ -53,6 +53,7 @@ export default function SettingsPage() {
   const { activeProfileId, profileFetch } = useProfile();
   const [email, setEmail] = useState('');
   const [emailNotifications, setEmailNotifications] = useState(false);
+  const [analyticsOptOut, setAnalyticsOptOut] = useState(false);
   const [accountEmail, setAccountEmail] = useState('');
   const [cronStatus, setCronStatus] = useState<CronStatusRow[]>([]);
 
@@ -83,6 +84,7 @@ export default function SettingsPage() {
       .then((data) => {
         setEmail(data.notificationEmail || '');
         setEmailNotifications(data.emailNotifications || false);
+        setAnalyticsOptOut(data.analyticsOptOut || false);
         setAccountEmail(data.accountEmail || '');
         const enabled = !!data.emailPollEnabled;
         setEmailPollEnabled(enabled);
@@ -197,7 +199,7 @@ export default function SettingsPage() {
     const res = await fetch('/api/settings', {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ notificationEmail: email, emailNotifications }),
+      body: JSON.stringify({ notificationEmail: email, emailNotifications, analyticsOptOut }),
     });
 
     if (res.ok) {
@@ -390,6 +392,29 @@ export default function SettingsPage() {
           </CardContent>
         </Card>
         )}
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Privacy &amp; Analytics</CardTitle>
+            <CardDescription>
+              We capture a small set of first-party, anonymised usage events (e.g. which features
+              you use) to decide what to improve. No holdings, dollar amounts, or personal data are
+              recorded, and nothing is shared with third parties. You can opt out below.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                id="analyticsOptOut"
+                checked={analyticsOptOut}
+                onChange={(e) => setAnalyticsOptOut(e.target.checked)}
+                className="rounded"
+              />
+              <Label htmlFor="analyticsOptOut">Opt out of anonymised usage analytics</Label>
+            </div>
+          </CardContent>
+        </Card>
 
         <Card>
           <CardHeader>

@@ -9,7 +9,8 @@
     "lint": "eslint",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
-    "migrate:multiuser": "tsx scripts/migrate-to-multiuser.ts"
+    "migrate:multiuser": "tsx scripts/migrate-to-multiuser.ts",
+    "metrics": "tsx scripts/metrics.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.4.0",

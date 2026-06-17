@@ -5,6 +5,7 @@ import { ASSET_MAP, INACTIVE_ASSETS } from '@/lib/ticker-map';
 import { eq, and } from 'drizzle-orm';
 import { requireUser } from '@/lib/auth-helpers';
 import { resolveProfileId } from '@/lib/profile';
+import { trackAsync, EVENTS } from '@/lib/analytics';
 
 export async function POST(request: NextRequest) {
   try {
@@ -114,6 +115,8 @@ export async function POST(request: NextRequest) {
         } catch { /* Skip on error */ }
       }
     } catch { /* Prices sheet missing or unparseable */ }
+
+    trackAsync(EVENTS.IMPORT_COMPLETED, { userId: user.id, props: { source: 'xlsx', inserted: importedTxs } });
 
     return NextResponse.json({
       success: true, transactions: importedTxs, prices: importedPrices, assets: assetIdMap.size,
