@@ -18,6 +18,7 @@ export async function GET() {
     accountEmail: user.email,
     notificationEmail: userSettings[0]?.notificationEmail ?? '',
     emailNotifications: userSettings[0]?.emailNotifications ?? false,
+    analyticsOptOut: userSettings[0]?.analyticsOptOut ?? false,
     emailPollEnabled: env.EMAIL_POLL_ENABLED,
   });
 }
@@ -25,6 +26,7 @@ export async function GET() {
 const settingsPutSchema = z.object({
   notificationEmail: z.string().trim().max(255).optional().nullable(),
   emailNotifications: z.boolean().optional(),
+  analyticsOptOut: z.boolean().optional(),
 }).strict();
 
 export async function PUT(request: NextRequest) {
@@ -35,6 +37,7 @@ export async function PUT(request: NextRequest) {
     const body = await parseJsonBody(request, settingsPutSchema);
     const notificationEmail: string | null = (body.notificationEmail || '').trim() || null;
     const emailNotifications: boolean = !!body.emailNotifications;
+    const analyticsOptOut: boolean = !!body.analyticsOptOut;
 
     const existing = await db.select({ userId: schema.userSettings.userId })
       .from(schema.userSettings)
@@ -46,10 +49,11 @@ export async function PUT(request: NextRequest) {
         userId: user.id,
         notificationEmail,
         emailNotifications,
+        analyticsOptOut,
       });
     } else {
       await db.update(schema.userSettings)
-        .set({ notificationEmail, emailNotifications })
+        .set({ notificationEmail, emailNotifications, analyticsOptOut })
         .where(eq(schema.userSettings.userId, user.id));
     }
 

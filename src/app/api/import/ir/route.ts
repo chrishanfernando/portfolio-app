@@ -5,6 +5,7 @@ import { ASSET_MAP, INACTIVE_ASSETS } from '@/lib/ticker-map';
 import { eq, and } from 'drizzle-orm';
 import { requireUser } from '@/lib/auth-helpers';
 import { resolveProfileId } from '@/lib/profile';
+import { trackAsync, EVENTS } from '@/lib/analytics';
 
 export async function POST(request: NextRequest) {
   try {
@@ -109,6 +110,8 @@ export async function POST(request: NextRequest) {
         tickers: [...new Set(parsed.map(t => t.irCurrency))],
       });
     }
+
+    trackAsync(EVENTS.IMPORT_COMPLETED, { userId: user.id, props: { source: 'ir', inserted: imported } });
 
     return NextResponse.json({
       success: true, transactions: imported,
