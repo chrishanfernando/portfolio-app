@@ -34,6 +34,8 @@ interface Profile {
   id: number;
   name: string;
   benchmarkSymbol?: string;
+  comparisonAdvisorName?: string;
+  comparisonAdvisorFeeBps?: number;
 }
 
 interface CronStatusRow {
@@ -60,6 +62,11 @@ export default function SettingsPage() {
   // Benchmark
   const [benchmarkSymbol, setBenchmarkSymbol] = useState('');
   const [savingBenchmark, setSavingBenchmark] = useState(false);
+
+  // Fee comparison baseline
+  const [advisorName, setAdvisorName] = useState('');
+  const [advisorFeeBps, setAdvisorFeeBps] = useState('');
+  const [savingAdvisor, setSavingAdvisor] = useState(false);
 
   // CMC account mappings
   const [emailPollEnabled, setEmailPollEnabled] = useState(false);
@@ -103,7 +110,11 @@ export default function SettingsPage() {
         .then(r => r.json())
         .then(data => {
           const active = data.find((p: Profile) => p.id === activeProfileId);
-          if (active) setBenchmarkSymbol(active.benchmarkSymbol || 'VAS.AX');
+          if (active) {
+            setBenchmarkSymbol(active.benchmarkSymbol || 'VAS.AX');
+            setAdvisorName(active.comparisonAdvisorName || 'Stockspot');
+            setAdvisorFeeBps(String(active.comparisonAdvisorFeeBps ?? 66));
+          }
         });
     }
   }, [activeProfileId, profileFetch]);
@@ -138,6 +149,36 @@ export default function SettingsPage() {
       toast.error('Error saving benchmark');
     } finally {
       setSavingBenchmark(false);
+    }
+  }
+
+  async function saveAdvisor() {
+    if (!activeProfileId || !advisorName.trim()) return;
+    const bps = parseInt(advisorFeeBps, 10);
+    if (Number.isNaN(bps) || bps < 0 || bps > 500) {
+      toast.error('Fee must be 0–500 basis points');
+      return;
+    }
+    setSavingAdvisor(true);
+    try {
+      const res = await profileFetch('/api/profiles', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: activeProfileId,
+          comparisonAdvisorName: advisorName.trim(),
+          comparisonAdvisorFeeBps: bps,
+        }),
+      });
+      if (res.ok) {
+        toast.success('Fee comparison updated');
+      } else {
+        toast.error('Failed to update fee comparison');
+      }
+    } catch {
+      toast.error('Error saving fee comparison');
+    } finally {
+      setSavingAdvisor(false);
     }
   }
 
@@ -326,9 +367,46 @@ export default function SettingsPage() {
             <div className="flex items-start gap-2 text-xs text-muted-foreground bg-accent/30 p-2 rounded">
               <Info className="h-4 w-4 shrink-0 mt-0.5" />
               <p>
-                Changing the benchmark will update your performance charts and Alpha metrics. 
+                Changing the benchmark will update your performance charts and Alpha metrics.
                 Prices for new benchmarks may take a few moments to fetch.
               </p>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Fee Comparison</CardTitle>
+            <CardDescription>
+              The advisor/robo-advisor baseline shown on the Fees page. Fee is in basis points (66 = 0.66% pa).
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center gap-2">
+              <div className="flex-1">
+                <Label htmlFor="advisor-name" className="text-xs">Name</Label>
+                <Input
+                  id="advisor-name"
+                  value={advisorName}
+                  onChange={(e) => setAdvisorName(e.target.value)}
+                  placeholder="e.g. Stockspot"
+                />
+              </div>
+              <div className="w-32">
+                <Label htmlFor="advisor-bps" className="text-xs">Fee (bps)</Label>
+                <Input
+                  id="advisor-bps"
+                  type="number"
+                  min={0}
+                  max={500}
+                  step={1}
+                  value={advisorFeeBps}
+                  onChange={(e) => setAdvisorFeeBps(e.target.value)}
+                />
+              </div>
+              <Button onClick={saveAdvisor} disabled={savingAdvisor} className="mt-5">
+                {savingAdvisor ? 'Saving...' : 'Save'}
+              </Button>
             </div>
           </CardContent>
         </Card>

@@ -1,6 +1,7 @@
 import { db, schema } from '@/db';
 import { ASSET_MAP, INACTIVE_ASSETS, CMC_TICKER_MAP } from '@/lib/ticker-map';
 import { eq, and } from 'drizzle-orm';
+import { lookupMerBps } from '@/lib/fees';
 
 export interface ParsedCmcTx {
   date: string;
@@ -10,6 +11,7 @@ export interface ParsedCmcTx {
   quantity: number;
   unitPriceAud: number;
   totalAud: number;
+  feeAud?: number | null;
 }
 
 export interface ImportResult {
@@ -41,7 +43,7 @@ export async function importCmcTransactions(
         const result = await db.insert(schema.assets).values({
           symbol: info.symbol, name: info.name, displayTicker: info.displayTicker,
           yahooSymbol: info.yahooSymbol, category: info.category, platform: info.platform,
-          isActive, profileId,
+          isActive, profileId, merBps: lookupMerBps(info.yahooSymbol),
         }).returning();
         assetIdMap.set(symbol, result[0].id);
       } else {
@@ -50,7 +52,7 @@ export async function importCmcTransactions(
         const category = isAsx ? 'Australia' : 'USA';
         const result = await db.insert(schema.assets).values({
           symbol, name: ticker, displayTicker: ticker, yahooSymbol, category,
-          platform: 'CMC Markets', isActive: true, profileId,
+          platform: 'CMC Markets', isActive: true, profileId, merBps: lookupMerBps(yahooSymbol),
         }).returning();
         assetIdMap.set(symbol, result[0].id);
       }
@@ -85,7 +87,7 @@ export async function importCmcTransactions(
       assetId, date: tx.date, action: tx.action, quantity: tx.quantity,
       unitPriceLocal: tx.unitPriceAud, localCurrency: 'AUD', fxRate: null,
       unitPriceAud: tx.unitPriceAud, splitMultiplier: 1, adjustedQty: tx.quantity,
-      totalAud: tx.totalAud, source,
+      totalAud: tx.totalAud, source, feeAud: tx.feeAud ?? null,
     });
     imported++;
   }

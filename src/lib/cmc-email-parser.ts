@@ -8,6 +8,7 @@ export interface ParsedCmcEmailTransaction {
   quantity: number;
   unitPriceAud: number;
   totalAud: number;
+  feeAud: number | null;
   accountNumber: string;
   confirmationNo: string;
 }
@@ -61,6 +62,10 @@ export function parseCmcConfirmationPdf(pdfText: string): ParsedCmcEmailTransact
       ? parseFloat(totalMatch[1].replace(/,/g, ''))
       : quantity * unitPriceAud;
 
+    // Extract brokerage line (e.g. "Brokerage: $11.00"); absent → unknown.
+    const brokerageMatch = pdfText.match(/Brokerage[^$]*\$([\d,.]+)/i);
+    const feeAud = brokerageMatch ? parseFloat(brokerageMatch[1].replace(/,/g, '')) : null;
+
     if (!quantity || !unitPriceAud) return null;
 
     return {
@@ -71,6 +76,7 @@ export function parseCmcConfirmationPdf(pdfText: string): ParsedCmcEmailTransact
       quantity,
       unitPriceAud,
       totalAud,
+      feeAud: feeAud !== null && Number.isFinite(feeAud) && feeAud >= 0 ? feeAud : null,
       accountNumber,
       confirmationNo,
     };

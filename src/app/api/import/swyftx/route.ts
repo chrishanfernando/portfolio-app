@@ -8,6 +8,7 @@ import { resolveProfileId } from '@/lib/profile';
 import { checkImportLimit } from '@/lib/rate-limit-guard';
 import { requireUploadFile } from '@/lib/upload-guard';
 import { trackAsync, EVENTS } from '@/lib/analytics';
+import { lookupMerBps } from '@/lib/fees';
 
 export async function POST(request: NextRequest) {
   try {
@@ -49,7 +50,7 @@ export async function POST(request: NextRequest) {
           const result = await db.insert(schema.assets).values({
             symbol: info.symbol, name: info.name, displayTicker: info.displayTicker,
             yahooSymbol: info.yahooSymbol, category: info.category, platform: info.platform,
-            isActive, profileId,
+            isActive, profileId, merBps: lookupMerBps(info.yahooSymbol),
           }).returning();
           assetIdMap.set(symbol, result[0].id);
         }
@@ -93,7 +94,7 @@ export async function POST(request: NextRequest) {
             assetId, date: tx.date, action: tx.action, quantity: tx.quantity,
             unitPriceLocal: tx.unitPriceAud, localCurrency: 'AUD', fxRate: null,
             unitPriceAud: tx.unitPriceAud, splitMultiplier: 1, adjustedQty: tx.quantity,
-            totalAud: tx.totalAud, source: 'Swyftx',
+            totalAud: tx.totalAud, source: 'Swyftx', feeAud: tx.feeAud,
           });
         }
         imported++;

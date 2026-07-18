@@ -75,6 +75,19 @@ export interface ParsedCmcTransaction {
   quantity: number;
   unitPriceAud: number;
   totalAud: number;
+  feeAud: number | null;
+}
+
+// CMC folds brokerage into the ledger Debit/Credit amount rather than listing
+// it in its own column. For AUD trades it is exactly recoverable as the gap
+// between the cash movement and qty × price. Guard against FX/odd rows: a
+// negative or implausibly large gap means "not a simple AUD trade" → unknown.
+function deriveCmcFeeAud(action: 'BUY' | 'SELL', quantity: number, unitPrice: number, totalAud: number): number | null {
+  const tradeValue = quantity * unitPrice;
+  const gap = action === 'BUY' ? totalAud - tradeValue : tradeValue - totalAud;
+  const fee = Math.round(gap * 100) / 100;
+  if (fee < 0 || fee > Math.max(100, tradeValue * 0.05)) return null;
+  return fee;
 }
 
 function parseCsvLine(line: string): string[] {
@@ -135,7 +148,8 @@ export function parseCmcCsv(text: string): ParsedCmcTransaction[] {
 
     if (!quantity || !unitPriceAud || !totalAud) continue;
 
-    transactions.push({ date, assetSymbol, cmcTicker, action, quantity, unitPriceAud, totalAud });
+    const feeAud = deriveCmcFeeAud(action, quantity, unitPriceAud, totalAud);
+    transactions.push({ date, assetSymbol, cmcTicker, action, quantity, unitPriceAud, totalAud, feeAud });
   }
 
   return transactions;
@@ -152,6 +166,7 @@ export interface ParsedStakeTransaction {
   totalAud: number;
   localCurrency: string;
   fxRate: number | null;
+  feeAud: number | null;
 }
 
 export function parseStakeXlsx(buffer: ArrayBuffer): ParsedStakeTransaction[] {
@@ -179,7 +194,11 @@ export function parseStakeXlsx(buffer: ArrayBuffer): ParsedStakeTransaction[] {
       const side = String(row[4]).trim();
       const units = Number(row[6]) || 0;
       const avgPrice = Number(row[7]) || 0;
+      const fees = Number(row[9]) || 0;
+      const gst = Number(row[10]) || 0;
       const totalValue = Number(row[11]) || 0;
+      // Brokerage = Fees + GST in the sheet's local currency.
+      const feeLocal = fees + gst;
 
       if (!units || !avgPrice || (side !== 'Buy' && side !== 'Sell')) continue;
 
@@ -206,6 +225,7 @@ export function parseStakeXlsx(buffer: ArrayBuffer): ParsedStakeTransaction[] {
           totalAud: totalValue * usdToAud,
           localCurrency: 'USD',
           fxRate: usdToAud,
+          feeAud: Math.round(feeLocal * usdToAud * 100) / 100,
         });
       } else {
         // Aus: already in AUD
@@ -220,6 +240,7 @@ export function parseStakeXlsx(buffer: ArrayBuffer): ParsedStakeTransaction[] {
           totalAud: totalValue,
           localCurrency: 'AUD',
           fxRate: null,
+          feeAud: Math.round(feeLocal * 100) / 100,
         });
       }
     }
@@ -236,6 +257,7 @@ export interface ParsedSwyftxTransaction {
   quantity: number;
   unitPriceAud: number;
   totalAud: number;
+  feeAud: number | null;
 }
 
 export function parseSwyftxCsv(text: string): ParsedSwyftxTransaction[] {
@@ -265,6 +287,9 @@ export function parseSwyftxCsv(text: string): ParsedSwyftxTransaction[] {
     const amount = parseFloat(fields[4]) || 0;
     const currency = fields[5];
     const value = parseFloat(fields[6]) || 0;
+    // "Fees" column — AUD-denominated for AUD-settled trades.
+    const feesRaw = parseFloat(fields[8]);
+    const feeAud = Number.isFinite(feesRaw) && feesRaw >= 0 ? Math.round(feesRaw * 100) / 100 : null;
     const audValue = parseFloat(fields[9]) || 0;
 
     if (!dateStr || !event || !amount) continue;
@@ -287,6 +312,7 @@ export function parseSwyftxCsv(text: string): ParsedSwyftxTransaction[] {
         quantity: amount,
         unitPriceAud: amount > 0 ? audValue / amount : 0,
         totalAud: audValue,
+        feeAud,
       });
     } else if (event === 'sell' && currency === 'AUD') {
       // Selling crypto for AUD
@@ -301,6 +327,7 @@ export function parseSwyftxCsv(text: string): ParsedSwyftxTransaction[] {
         quantity: amount,
         unitPriceAud: amount > 0 ? audValue / amount : 0,
         totalAud: audValue,
+        feeAud,
       });
     } else if (event === 'sell' && currency && currency !== 'AUD') {
       // Cross-crypto trade: selling Asset for Currency (e.g., sell ETH for BTC)
@@ -315,6 +342,9 @@ export function parseSwyftxCsv(text: string): ParsedSwyftxTransaction[] {
           quantity: amount,
           unitPriceAud: amount > 0 ? audValue / amount : 0,
           totalAud: audValue,
+          // Cross-crypto trade fee attaches to the sell leg only, so the one
+          // fee isn't double-counted across both synthesized legs.
+          feeAud,
         });
       }
 
@@ -329,6 +359,7 @@ export function parseSwyftxCsv(text: string): ParsedSwyftxTransaction[] {
           quantity: value,
           unitPriceAud: value > 0 ? audValue / value : 0,
           totalAud: audValue,
+          feeAud: null,
         });
       }
     }

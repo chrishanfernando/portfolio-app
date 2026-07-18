@@ -62,6 +62,7 @@ const transactionCreateSchema = z.object({
   unitPriceAud: aud,
   splitMultiplier: z.number().positive().finite().optional(),
   comment: optionalString(1000).nullable(),
+  feeAud: aud.nullable().optional(),
 }).strict();
 
 export async function POST(request: NextRequest) {
@@ -91,6 +92,7 @@ export async function POST(request: NextRequest) {
       adjustedQty,
       totalAud,
       comment: body.comment ?? null,
+      feeAud: body.feeAud ?? null,
     }).returning();
 
     trackAsync(EVENTS.TRANSACTION_CREATED, { userId: user.id, props: { source: 'manual', action: body.action } });

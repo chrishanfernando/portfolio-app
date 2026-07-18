@@ -1,0 +1,28 @@
+Stake imports require the native XLSX export from stake.com.au (not CSV).
+
+To download yours:
+  Stake → Portfolio → Activity → Export → XLSX
+
+The importer reads two sheets by name:
+  - "Aus Equities"       (all AUD-denominated)
+  - "Wall St Equities"   (USD prices, with USD/AUD rate column)
+
+Both sheets share this column order (row 1 is headers):
+  A  Trade Date              (YYYY-MM-DD)
+  B  Settlement Date
+  C  Symbol                  (e.g. VAS, AAPL)
+  D  Name
+  E  Side                    ("Buy" or "Sell")
+  F  Trade Identifier
+  G  Units
+  H  Avg. Price
+  I  Value
+  J  Fees
+  K  GST
+  L  Total Value
+  M  Currency
+  N  AUD/USD rate            (Wall St sheet only; USD→AUD multiplier, e.g. 1.52)
+
+Only Buy/Sell rows are imported. Deposits, dividends, and interest are ignored.
+
+If your export is missing sheet names, rename them exactly as above before uploading.

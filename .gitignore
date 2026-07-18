@@ -42,6 +42,8 @@ local.db
 *.xlsx
 *.xls
 *.csv
+# ...but ship the sanitised broker sample files
+!public/samples/*.csv
 
 # editor / tooling local state
 .claude/

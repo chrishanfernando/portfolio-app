@@ -21,6 +21,8 @@ const profilePatchSchema = z.object({
   id: positiveInt,
   name: sanitizedString(64).optional(),
   benchmarkSymbol: sanitizedString(32).optional(),
+  comparisonAdvisorName: sanitizedString(64).optional(),
+  comparisonAdvisorFeeBps: z.number().int().min(0).max(500).optional(),
 }).strict();
 
 export async function PATCH(request: NextRequest) {
@@ -33,6 +35,8 @@ export async function PATCH(request: NextRequest) {
     const updateSet: Partial<typeof schema.profiles.$inferInsert> = {};
     if (body.name) updateSet.name = body.name;
     if (body.benchmarkSymbol) updateSet.benchmarkSymbol = body.benchmarkSymbol.toUpperCase();
+    if (body.comparisonAdvisorName !== undefined) updateSet.comparisonAdvisorName = body.comparisonAdvisorName;
+    if (body.comparisonAdvisorFeeBps !== undefined) updateSet.comparisonAdvisorFeeBps = body.comparisonAdvisorFeeBps;
 
     if (body.benchmarkSymbol) {
       const symbol = body.benchmarkSymbol.toUpperCase();

@@ -11,6 +11,8 @@ const paramsSchema = z.object({ id: positiveInt });
 const assetPatchSchema = z.object({
   platform: sanitizedString(64).optional(),
   category: sanitizedString(64).optional(),
+  // MER in basis points; null clears the value back to "unknown".
+  merBps: z.number().int().min(0).max(500).nullable().optional(),
 }).strict();
 
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -28,6 +30,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     const updates: Record<string, unknown> = {};
     if (body.platform !== undefined) updates.platform = body.platform;
     if (body.category !== undefined) updates.category = body.category;
+    if (body.merBps !== undefined) updates.merBps = body.merBps;
 
     if (Object.keys(updates).length === 0) {
       throw new ValidationError([{ path: '(root)', message: 'Nothing to update' }]);
