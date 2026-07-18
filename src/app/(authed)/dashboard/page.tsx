@@ -49,6 +49,7 @@ export default function DashboardPage() {
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
+  const [fees, setFees] = useState<{ weightedMerBps: number | null; projectedAnnualMerAud: number | null } | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [sortBy, setSortBy] = useState<'cost' | 'value' | 'pl' | 'return' | 'cagr'>('value');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
@@ -67,11 +68,14 @@ export default function DashboardPage() {
   const fetchData = useCallback(async () => {
     try {
       setLoadError(false);
-      const [dashRes, optsRes, rebalRes] = await Promise.all([
+      const [dashRes, optsRes, rebalRes, feesRes] = await Promise.all([
         profileFetch('/api/dashboard'),
         profileFetch('/api/assets/options'),
         profileFetch('/api/rebalance'),
+        profileFetch('/api/fees'),
       ]);
+      // Fees tile is best-effort — a failure here shouldn't error the dashboard.
+      setFees(feesRes.ok ? await feesRes.json() : null);
       // A failed dashboard fetch must render the error state, not the
       // "no holdings yet" empty state.
       if (!dashRes.ok) throw new Error(`dashboard fetch failed: ${dashRes.status}`);
@@ -251,7 +255,7 @@ export default function DashboardPage() {
       )}
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-6">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-7 gap-4 mb-6">
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm text-muted-foreground flex items-center gap-1">
@@ -325,6 +329,25 @@ export default function DashboardPage() {
             </p>
           </CardContent>
         </Card>
+        <Link href="/fees">
+          <Card className="h-full hover:bg-accent/30 transition-colors">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm text-muted-foreground flex items-center gap-1">
+                <DollarSign className="h-4 w-4" /> Fund Fees
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-2xl font-bold">
+                {fees?.weightedMerBps == null ? '—' : `${(fees.weightedMerBps / 100).toFixed(2)}%`}
+              </p>
+              <p className="text-[10px] text-muted-foreground uppercase mt-1">
+                {fees?.projectedAnnualMerAud == null
+                  ? 'MER unknown'
+                  : `≈ $${fees.projectedAnnualMerAud.toLocaleString()}/yr`}
+              </p>
+            </CardContent>
+          </Card>
+        </Link>
       </div>
 
       {/* Charts */}

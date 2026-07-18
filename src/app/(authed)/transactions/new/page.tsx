@@ -33,6 +33,7 @@ export default function NewTransactionPage() {
     unitPriceAud: '',
     unitPriceLocal: '',
     fxRate: '',
+    feeAud: '',
     comment: '',
   });
 
@@ -97,6 +98,7 @@ export default function NewTransactionPage() {
           unitPriceAud: parseFloat(form.unitPriceAud),
           unitPriceLocal: form.unitPriceLocal ? parseFloat(form.unitPriceLocal) : null,
           fxRate: form.fxRate ? parseFloat(form.fxRate) : null,
+          feeAud: form.feeAud ? parseFloat(form.feeAud) : null,
           comment: form.comment || null,
         }),
       });
@@ -254,9 +256,15 @@ export default function NewTransactionPage() {
                   <Input type="number" step="any" value={form.fxRate} onChange={(e) => setForm({ ...form, fxRate: e.target.value })} />
                 </div>
               </div>
-              <div>
-                <Label>Comment (optional)</Label>
-                <Input value={form.comment} onChange={(e) => setForm({ ...form, comment: e.target.value })} />
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label>Brokerage (AUD, optional)</Label>
+                  <Input type="number" step="any" min="0" placeholder="blank = unknown" value={form.feeAud} onChange={(e) => setForm({ ...form, feeAud: e.target.value })} />
+                </div>
+                <div>
+                  <Label>Comment (optional)</Label>
+                  <Input value={form.comment} onChange={(e) => setForm({ ...form, comment: e.target.value })} />
+                </div>
               </div>
             </div>
 

@@ -1,0 +1,8 @@
+Swyftx Transaction Report - Sample
+Generated: 2025-06-01
+
+Crypto Transactions
+Date,Time,Event,Asset,Amount,Currency,Value,Rate,Fees,AUD Value
+15/01/2025,10:14:22,buy,BTC,0.01500000,AUD,,64000.00,5.00,960.00
+03/02/2025,09:11:03,buy,ETH,0.20000000,AUD,,4500.00,3.50,900.00
+22/05/2025,14:02:45,sell,BTC,0.00500000,AUD,,72000.00,2.00,360.00

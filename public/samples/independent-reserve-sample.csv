@@ -1,0 +1,6 @@
+sep=,
+Type,Settled,TradeGuid,Direction,Rate,Fee,Currency,BaseCurrency,Credit,Debit,Comment
+Trade,15 Jan 2025 10:15:00 +11:00,GUID-0001,Buy,64000.00,5.00,AUD,BTC,,960.00,Sample buy AUD leg
+Trade,15 Jan 2025 10:15:00 +11:00,GUID-0001,Buy,64000.00,0.00,BTC,BTC,0.01500000,,Sample buy crypto leg
+Trade,22 May 2025 14:05:00 +11:00,GUID-0002,Sell,72000.00,2.00,AUD,BTC,360.00,,Sample sell AUD leg
+Trade,22 May 2025 14:05:00 +11:00,GUID-0002,Sell,72000.00,0.00,BTC,BTC,,0.00500000,Sample sell crypto leg

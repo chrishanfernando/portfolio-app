@@ -29,7 +29,7 @@ interface Transaction {
 }
 
 interface AssetDetail {
-  asset: { id: number; symbol: string; name: string; displayTicker: string; category: string; platform: string };
+  asset: { id: number; symbol: string; name: string; displayTicker: string; category: string; platform: string; merBps: number | null };
   transactions: Transaction[];
   priceHistory: Array<{ date: string; priceAud: number }>;
   holding: { quantity: number; avgCost: number; totalCost: number; currentPrice: number; marketValue: number; profitLoss: number; profitLossPct: number };
@@ -62,6 +62,8 @@ export default function AssetDetailPage() {
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const [commentEditId, setCommentEditId] = useState<number | null>(null);
   const [commentText, setCommentText] = useState('');
+  const [editingMer, setEditingMer] = useState(false);
+  const [merText, setMerText] = useState('');
 
   async function fetchData() {
     const r = await profileFetch(`/api/holdings/${params.id}`);
@@ -137,6 +139,32 @@ export default function AssetDetailPage() {
     }
   }
 
+  async function saveMer() {
+    if (!data) return;
+    const trimmed = merText.trim();
+    const value = trimmed === '' ? null : parseInt(trimmed, 10);
+    if (value !== null && (Number.isNaN(value) || value < 0 || value > 500)) {
+      toast.error('MER must be 0–500 basis points');
+      return;
+    }
+    try {
+      const res = await fetch(`/api/assets/${data.asset.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ merBps: value }),
+      });
+      if (res.ok) {
+        toast.success('MER updated');
+        setEditingMer(false);
+        await fetchData();
+      } else {
+        toast.error('Failed to update MER');
+      }
+    } catch {
+      toast.error('Failed to update MER');
+    }
+  }
+
   async function saveComment(txId: number) {
     try {
       const res = await fetch(`/api/transactions/${txId}`, {
@@ -190,9 +218,35 @@ export default function AssetDetailPage() {
         <div>
           <h1 className="text-2xl font-bold">{asset.displayTicker}</h1>
           <p className="text-muted-foreground">{asset.name}</p>
-          <div className="flex gap-2 mt-2">
+          <div className="flex items-center gap-2 mt-2">
             <Badge variant="secondary">{asset.category}</Badge>
             <Badge variant="outline">{asset.platform}</Badge>
+            {editingMer ? (
+              <span className="flex items-center gap-1">
+                <Input
+                  type="number"
+                  min={0}
+                  max={500}
+                  step={1}
+                  value={merText}
+                  onChange={e => setMerText(e.target.value)}
+                  onKeyDown={e => { if (e.key === 'Enter') saveMer(); if (e.key === 'Escape') setEditingMer(false); }}
+                  placeholder="bps — blank = unknown"
+                  className="h-7 w-40 text-xs"
+                  autoFocus
+                />
+                <Button size="sm" variant="ghost" className="h-7 px-2" onClick={saveMer}>Save</Button>
+              </span>
+            ) : (
+              <button
+                onClick={() => { setEditingMer(true); setMerText(asset.merBps?.toString() ?? ''); }}
+                title="Management expense ratio — click to edit (basis points)"
+              >
+                <Badge variant="outline" className="cursor-pointer hover:bg-accent">
+                  MER {asset.merBps == null ? 'unknown' : `${(asset.merBps / 100).toFixed(2)}%`}
+                </Badge>
+              </button>
+            )}
           </div>
         </div>
         {holding.quantity > 0.0001 && (

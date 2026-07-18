@@ -6,6 +6,7 @@ import { requireUser } from '@/lib/auth-helpers';
 import { resolveProfileId } from '@/lib/profile';
 import { sanitizedString, optionalString } from '@/lib/validation/primitives';
 import { apiError, parseJsonBody } from '@/lib/api-error';
+import { lookupMerBps } from '@/lib/fees';
 
 export async function GET(request: NextRequest) {
   const user = await requireUser();
@@ -62,6 +63,7 @@ export async function POST(request: NextRequest) {
       category: body.category,
       platform: body.platform ?? null,
       isActive: true,
+      merBps: lookupMerBps(body.yahooSymbol),
     }).returning();
 
     return NextResponse.json(result[0]);

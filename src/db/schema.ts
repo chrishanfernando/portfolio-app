@@ -64,6 +64,9 @@ export const profiles = sqliteTable('profiles', {
   benchmarkSymbol: text('benchmark_symbol').default('VAS.AX'),
   createdAt: text('created_at').notNull().default('2024-01-01'),
   userId: text('user_id').references(() => user.id, { onDelete: 'cascade' }),
+  // Fee-comparison baseline (per profile so SMSF vs personal can differ).
+  comparisonAdvisorName: text('comparison_advisor_name').notNull().default('Stockspot'),
+  comparisonAdvisorFeeBps: integer('comparison_advisor_fee_bps').notNull().default(66),
 });
 
 export const assets = sqliteTable('assets', {
@@ -76,6 +79,8 @@ export const assets = sqliteTable('assets', {
   category: text('category').notNull(),
   platform: text('platform'),
   isActive: integer('is_active', { mode: 'boolean' }).notNull().default(true),
+  // Management expense ratio in basis points; null = unknown (not zero).
+  merBps: integer('mer_bps'),
 });
 
 export const transactions = sqliteTable('transactions', {
@@ -93,6 +98,9 @@ export const transactions = sqliteTable('transactions', {
   totalAud: real('total_aud').notNull(),
   source: text('source'),
   comment: text('comment'),
+  // Brokerage/commission in AUD; null = unknown. total_aud remains gross
+  // (fees included) — see openspec/changes/fees-cost-transparency/design.md.
+  feeAud: real('fee_aud'),
 });
 
 export const prices = sqliteTable('prices', {

@@ -13,6 +13,7 @@ const transactionPatchSchema = z.object({
   unitPriceAud: aud.optional(),
   source: optionalString(64),
   comment: optionalString(1000).nullable(),
+  feeAud: aud.nullable().optional(),
 }).strict();
 
 const paramsSchema = z.object({ txId: positiveInt });
@@ -47,6 +48,7 @@ export async function PATCH(
     if (body.unitPriceAud !== undefined) updates.unitPriceAud = body.unitPriceAud;
     if (body.source !== undefined) updates.source = body.source;
     if (body.comment !== undefined) updates.comment = body.comment;
+    if (body.feeAud !== undefined) updates.feeAud = body.feeAud;
 
     // Recalculate totalAud if quantity or price changed
     const qty = (updates.quantity as number) ?? existing[0].quantity;

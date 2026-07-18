@@ -17,6 +17,7 @@ export interface HoldingSnapshot {
   profitLossAud: number;
   profitLossPct: number;
   cagr: number;
+  merBps: number | null;
 }
 
 export interface PortfolioSummary {
@@ -138,6 +139,7 @@ export async function calculateHoldings(profileId?: number): Promise<HoldingSnap
       profitLossAud: marketValue - totalCost,
       profitLossPct: totalCost > 0 ? ((marketValue - totalCost) / totalCost) * 100 : 0,
       cagr: holdingCagr,
+      merBps: asset.merBps ?? null,
     });
   }
 

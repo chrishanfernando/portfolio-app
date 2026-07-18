@@ -1,0 +1,45 @@
+schema: spec-driven
+
+# Project context shown to AI when creating artifacts.
+# Full project background lives in openspec/project.md — read that for tech stack,
+# domain model, and conventions. The summary below is the AI-facing crib sheet.
+context: |
+  Self-hosted personal investment portfolio tracker. Multi-user, strictly
+  isolated by user_id and profile_id. All monetary values stored in AUD.
+  Stack: Next.js 16 App Router, React 19, TypeScript strict, SQLite/Drizzle,
+  Better Auth, Tailwind v4 + shadcn/ui, Yahoo Finance for prices.
+  Read openspec/project.md for the full project context (tech stack, domain
+  model, conventions, constraints) before writing or reviewing artifacts.
+
+  OpenSpec philosophy:
+  - Specs are the source of truth for WHAT the system does. Code is the
+    implementation. When they diverge, fix the divergence — don't paper over it.
+  - Before changing behaviour, read the current spec. If the spec doesn't cover
+    it, that itself is a finding — flag it and write the requirement.
+  - Outside-in: requirements describe observable behaviour, not implementation.
+    Implementation notes belong in design.md.
+  - Tests are not the spec. Specs describe behaviour; tests verify it.
+
+# Per-artifact rules applied on top of the schema's default instructions.
+rules:
+  proposal:
+    - "State the user/business motivation in Why, not the technical itch."
+    - "Impact section must explicitly answer: breaking change? DB migration? new config/env vars? affected capabilities?"
+    - "Never silently broaden a requirement. If a change relaxes a SHALL to a SHOULD, call it out in What."
+
+  design:
+    - "Only required for non-trivial changes. Trivial changes (single-file refactors, copy tweaks, dependency bumps) can skip design."
+    - "Document the alternatives considered and why they were rejected, not just the chosen approach."
+    - "Call out anything deliberately out of scope so future readers know it was a decision, not an oversight."
+
+  tasks:
+    - "Tick checkboxes only when work is actually done, not in advance."
+    - "Order tasks by dependency — schema/migration before code that depends on it, lib helpers before the routes that call them."
+    - "Include a verification group at the end (lint, typecheck, manual smoke)."
+
+  specs:
+    - "One requirement = one testable behaviour. If the rule contains 'and', split it."
+    - "Use SHALL for hard requirements, SHOULD for strong preferences, MAY for permitted-but-optional behaviour."
+    - "Scenarios must be concrete — name actual fields, routes, HTTP statuses, values. No vague conditions like 'the user does something'."
+    - "Prefer ADDED over MODIFIED when introducing new behaviour, so the diff stays clear. Use MODIFIED only when existing behaviour genuinely changes."
+    - "MODIFIED requirements must include the FULL updated content (header, description, all scenarios), not just the diff."

@@ -7,6 +7,7 @@ import { requireUser } from '@/lib/auth-helpers';
 import { resolveProfileId } from '@/lib/profile';
 import { checkImportLimit } from '@/lib/rate-limit-guard';
 import { requireUploadFile } from '@/lib/upload-guard';
+import { lookupMerBps } from '@/lib/fees';
 import { trackAsync, EVENTS } from '@/lib/analytics';
 
 export async function POST(request: NextRequest) {
@@ -90,6 +91,7 @@ export async function POST(request: NextRequest) {
           const result = await tdb.insert(schema.assets).values({
             profileId, symbol: info.symbol, name: info.name, displayTicker: info.displayTicker,
             yahooSymbol: info.yahooSymbol, category: info.category, platform: info.platform, isActive,
+            merBps: lookupMerBps(info.yahooSymbol),
           }).returning();
           assetIdMap.set(key, result[0].id);
         }
