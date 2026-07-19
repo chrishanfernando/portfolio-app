@@ -12,27 +12,39 @@ const IS_PROD = NODE_ENV === 'production' && !IS_BUILD;
 
 const nonEmpty = z.string().min(1);
 
+// Treat empty strings in .env (e.g. `IMAP_USER=`) as if the var were unset.
+// Without this, `z.string().min(1).optional()` rejects the empty string and
+// crashes module load for every route that imports `env`.
+const emptyToUndefined = z.preprocess(
+  v => (typeof v === 'string' && v.trim() === '' ? undefined : v),
+  z.string().min(1).optional(),
+);
+const optionalUrl = z.preprocess(
+  v => (typeof v === 'string' && v.trim() === '' ? undefined : v),
+  z.string().url().optional(),
+);
+
 const baseSchema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
-  DATABASE_URL: z.string().min(1).optional(),
-  DATABASE_AUTH_TOKEN: z.string().min(1).optional(),
-  BETTER_AUTH_URL: z.string().url().optional(),
-  NEXT_PUBLIC_APP_URL: z.string().url().optional(),
-  BETTER_AUTH_SECRET: z.string().min(1).optional(),
-  JWT_SECRET: z.string().min(1).optional(),
-  CRON_SECRET: z.string().min(1).optional(),
-  GOOGLE_CLIENT_ID: z.string().min(1).optional(),
-  GOOGLE_CLIENT_SECRET: z.string().min(1).optional(),
-  RESEND_API_KEY: z.string().min(1).optional(),
-  EMAIL_FROM: z.string().min(1).optional(),
-  EMAIL_REPLY_TO: z.string().min(1).optional(),
-  EMAIL_UNSUBSCRIBE_MAILTO: z.string().min(1).optional(),
+  DATABASE_URL: emptyToUndefined,
+  DATABASE_AUTH_TOKEN: emptyToUndefined,
+  BETTER_AUTH_URL: optionalUrl,
+  NEXT_PUBLIC_APP_URL: optionalUrl,
+  BETTER_AUTH_SECRET: emptyToUndefined,
+  JWT_SECRET: emptyToUndefined,
+  CRON_SECRET: emptyToUndefined,
+  GOOGLE_CLIENT_ID: emptyToUndefined,
+  GOOGLE_CLIENT_SECRET: emptyToUndefined,
+  RESEND_API_KEY: emptyToUndefined,
+  EMAIL_FROM: emptyToUndefined,
+  EMAIL_REPLY_TO: emptyToUndefined,
+  EMAIL_UNSUBSCRIBE_MAILTO: emptyToUndefined,
   EMAIL_POLL_ENABLED: z.enum(['true', 'false']).default('false'),
-  IMAP_HOST: z.string().min(1).optional(),
+  IMAP_HOST: emptyToUndefined,
   IMAP_PORT: z.coerce.number().int().positive().default(993),
-  IMAP_USER: z.string().min(1).optional(),
-  IMAP_PASSWORD: z.string().min(1).optional(),
-  SENTRY_DSN: z.string().url().optional(),
+  IMAP_USER: emptyToUndefined,
+  IMAP_PASSWORD: emptyToUndefined,
+  SENTRY_DSN: optionalUrl,
   // Comma-separated list of emails allowed to view the internal /admin/metrics
   // dashboard. Empty = nobody can reach it (deny by default).
   ADMIN_EMAILS: z.string().optional(),

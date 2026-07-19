@@ -1,13 +1,13 @@
 import { LegalShell } from '@/components/layout/legal-shell';
 
-export const metadata = { title: 'Privacy Policy — Portfolio Tracker' };
+export const metadata = { title: 'Privacy Policy — {{BRAND}}' };
 
 export default function PrivacyPage() {
   return (
-    <LegalShell title="Privacy Policy" lastUpdated="2026-05-10">
+    <LegalShell title="Privacy Policy" lastUpdated="2026-07-02">
       <p className="text-muted-foreground">
-        This Privacy Policy explains how Portfolio Tracker (operated by
-        [YOUR NAME OR BUSINESS NAME], &quot;we&quot;, &quot;us&quot;)
+        This Privacy Policy explains how {'{{BRAND}}'} (operated by
+        {' '}{'{{LEGAL_ENTITY}}'}, &quot;we&quot;, &quot;us&quot;)
         collects, uses, and protects your personal information. We comply
         with the <em>Australian Privacy Principles</em> under the{' '}
         <em>Privacy Act 1988</em> (Cth) and, where applicable, the GDPR.
@@ -106,11 +106,12 @@ export default function PrivacyPage() {
 
       <h2 className="text-xl font-semibold mt-6">5. Where your data lives</h2>
       <p>
-        Our database and application are hosted by [HOSTING PROVIDER /
-        REGION — e.g. Turso AWS ap-southeast-2 / Vercel global]. Data may
-        be processed in countries other than your own (including the
-        United States). By using the service you consent to the transfer
-        of your information to those locations.
+        Our database is hosted by Turso on AWS (primary region:
+        ap-southeast-2, Sydney). Our application is hosted by Vercel
+        (edge and serverless functions run in the region closest to the
+        request). Data may be processed in countries other than your own
+        (including the United States). By using the service you consent
+        to the transfer of your information to those locations.
       </p>
 
       <h2 className="text-xl font-semibold mt-6">6. How long we keep it</h2>

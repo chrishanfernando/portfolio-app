@@ -1,13 +1,13 @@
 import { LegalShell } from '@/components/layout/legal-shell';
 
-export const metadata = { title: 'Terms of Service — Portfolio Tracker' };
+export const metadata = { title: 'Terms of Service — {{BRAND}}' };
 
 export default function TermsPage() {
   return (
-    <LegalShell title="Terms of Service" lastUpdated="2026-05-10">
+    <LegalShell title="Terms of Service" lastUpdated="2026-07-02">
       <p className="text-muted-foreground">
-        These Terms govern your use of Portfolio Tracker (&quot;the
-        service&quot;), operated by [YOUR NAME OR BUSINESS NAME] (&quot;we&quot;,
+        These Terms govern your use of {'{{BRAND}}'} (&quot;the
+        service&quot;), operated by {'{{LEGAL_ENTITY}}'} (&quot;we&quot;,
         &quot;us&quot;). By creating an account or using the service, you
         agree to these Terms. If you do not agree, do not use the service.
       </p>
@@ -68,6 +68,19 @@ export default function TermsPage() {
         not guarantee uptime, performance, or freedom from defects. We
         may modify, suspend, or discontinue any part of the service at
         any time, with or without notice.
+      </p>
+
+      <h2 className="text-xl font-semibold mt-6">7a. Paid plans</h2>
+      <p>
+        Some features may be offered on a paid subscription. If you
+        subscribe, charges are billed in advance through our payment
+        processor and recur until you cancel. You can cancel at any time
+        from your account; cancellation takes effect at the end of the
+        current billing period and no partial refunds are issued unless
+        required by law (including under the{' '}
+        <em>Australian Consumer Law</em>). Prices are inclusive of GST
+        where applicable. We may change prices on at least 30 days&apos;
+        notice — the new price applies to the next billing cycle.
       </p>
 
       <h2 className="text-xl font-semibold mt-6">8. Termination</h2>

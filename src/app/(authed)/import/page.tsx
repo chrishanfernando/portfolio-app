@@ -5,7 +5,7 @@ import { AppShell } from '@/components/layout/app-shell';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Upload, CheckCircle, AlertTriangle, X } from 'lucide-react';
+import { Upload, CheckCircle, AlertTriangle, X, Download } from 'lucide-react';
 import { toast } from 'sonner';
 import { useProfile } from '@/components/profile-context';
 import { formatDate } from '@/lib/format';
@@ -191,12 +191,27 @@ export default function ImportPage() {
     setPreview: (p: PreviewData | null) => void,
     result: ImportResult | null,
     setResult: (r: ImportResult | null) => void,
+    sampleHref?: string,
+    sampleLabel?: string,
   ) {
     return (
       <Card key={key}>
         <CardHeader className="p-4 pb-2">
-          <CardTitle className="text-base">{title}</CardTitle>
-          <CardDescription className="text-xs">{description}</CardDescription>
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <CardTitle className="text-base">{title}</CardTitle>
+              <CardDescription className="text-xs">{description}</CardDescription>
+            </div>
+            {sampleHref && (
+              <a
+                href={sampleHref}
+                download
+                className="shrink-0 inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
+              >
+                <Download className="h-3 w-3" /> {sampleLabel || 'Sample'}
+              </a>
+            )}
+          </div>
           <p className="text-[11px] text-muted-foreground/80 mt-1">
             <span className="font-medium">Columns:</span> {columns}
           </p>
@@ -258,7 +273,17 @@ export default function ImportPage() {
 
   return (
     <AppShell>
-      <h1 className="text-2xl font-bold mb-4">Import Data</h1>
+      <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
+        <h1 className="text-2xl font-bold">Import Data</h1>
+        <a
+          href="/samples/README.md"
+          target="_blank"
+          rel="noopener"
+          className="text-xs text-muted-foreground hover:text-foreground inline-flex items-center gap-1"
+        >
+          <Download className="h-3 w-3" /> All sample files
+        </a>
+      </div>
 
       <div className="space-y-3">
         {renderImportCard(
@@ -268,6 +293,7 @@ export default function ImportPage() {
           '15/03/2024, CB, "Bght 4 BIDU:US @ 273.8475", 1095.39, 0',
           '.csv', cmcFile, setCmcFile, 'cmc', '/api/import/cmc', 'CMC Transactions',
           cmcPreview, setCmcPreview, cmcResult, setCmcResult,
+          '/samples/cmc-markets-sample.csv', 'Sample CSV',
         )}
 
         {renderImportCard(
@@ -277,6 +303,7 @@ export default function ImportPage() {
           '2024-03-15, 2024-03-17, AAPL, Apple Inc, Buy, TX12345, 10, 172.50, 1725.00, 3.00, 0.30, 1728.30, USD, 1.52',
           '.xlsx,.xls', stakeFile, setStakeFile, 'stake', '/api/import/stake', 'Stake Transactions',
           stakePreview, setStakePreview, stakeResult, setStakeResult,
+          '/samples/stake-format-notes.txt', 'Format notes',
         )}
 
         {renderImportCard(
@@ -286,6 +313,7 @@ export default function ImportPage() {
           '15/03/2024, 14:32, buy, BTC, 0.025, AUD, 1750.00, 0.5, AUD, 1750.00',
           '.csv', swyftxFile, setSwyftxFile, 'swyftx', '/api/import/swyftx', 'Swyftx Transactions',
           swyftxPreview, setSwyftxPreview, swyftxResult, setSwyftxResult,
+          '/samples/swyftx-sample.csv', 'Sample CSV',
         )}
 
         {renderImportCard(
@@ -295,6 +323,7 @@ export default function ImportPage() {
           'Yes, 11 Jan 2024 09:46:30 +11:00, Trade, abc-123, ord-456, Filled, Xbt-Aud, AUD, 0, 500.00',
           '.csv', irFile, setIrFile, 'ir', '/api/import/ir', 'Independent Reserve Transactions',
           irPreview, setIrPreview, irResult, setIrResult,
+          '/samples/independent-reserve-sample.csv', 'Sample CSV',
         )}
 
         {renderImportCard(
@@ -304,6 +333,7 @@ export default function ImportPage() {
           'Tx: 2024-03-15, AAPL, BUY, 10, 172.50, 1.52, 262.20, 1, 10, 2622.00, "Bought on dip" — Prices: 2024-03-15, 262.20, 0.65, …',
           '.xlsx,.xls', excelFile, setExcelFile, 'excel', '/api/import', 'Excel Transactions',
           excelPreview, setExcelPreview, excelResult, setExcelResult,
+          '/samples/generic-portfolio-template.csv', 'Sample template',
         )}
 
       </div>

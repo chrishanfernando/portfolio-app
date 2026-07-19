@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import Link from 'next/link';
-import { Plus, Search } from 'lucide-react';
+import { Plus, Search, ArrowDown, ArrowUp, Upload } from 'lucide-react';
 import { formatDate } from '@/lib/format';
 import { useProfile } from '@/components/profile-context';
 
@@ -28,6 +28,7 @@ export default function TransactionsPage() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [sortDir, setSortDir] = useState<'desc' | 'asc'>('desc');
 
   useEffect(() => {
     setLoading(true);
@@ -37,12 +38,43 @@ export default function TransactionsPage() {
       .finally(() => setLoading(false));
   }, [activeProfileId]);
 
-  const filtered = transactions.filter(t =>
-    !search || t.displayTicker?.toLowerCase().includes(search.toLowerCase()) ||
-    t.assetName?.toLowerCase().includes(search.toLowerCase())
-  );
+  const filtered = transactions
+    .filter(t =>
+      !search || t.displayTicker?.toLowerCase().includes(search.toLowerCase()) ||
+      t.assetName?.toLowerCase().includes(search.toLowerCase())
+    )
+    .slice()
+    .sort((a, b) => {
+      const diff = new Date(a.date).getTime() - new Date(b.date).getTime();
+      return sortDir === 'asc' ? diff : -diff;
+    });
 
   if (loading) return <AppShell><p className="text-muted-foreground">Loading...</p></AppShell>;
+
+  if (transactions.length === 0) {
+    return (
+      <AppShell>
+        <h1 className="text-2xl font-bold mb-6">Transactions</h1>
+        <Card>
+          <CardContent className="flex flex-col items-center justify-center py-16 text-center">
+            <Upload className="h-12 w-12 text-muted-foreground mb-4" />
+            <p className="text-lg font-semibold mb-2">No transactions yet</p>
+            <p className="text-sm text-muted-foreground mb-6 max-w-sm">
+              Import a CSV from CMC, Stake, Swyftx, or Independent Reserve — or add one by hand.
+            </p>
+            <div className="flex gap-3">
+              <Link href="/import">
+                <Button>Import from broker</Button>
+              </Link>
+              <Link href="/transactions/new">
+                <Button variant="outline">Add manually</Button>
+              </Link>
+            </div>
+          </CardContent>
+        </Card>
+      </AppShell>
+    );
+  }
 
   return (
     <AppShell>
@@ -69,7 +101,17 @@ export default function TransactionsPage() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b text-muted-foreground">
-                  <th className="text-left p-3">Date</th>
+                  <th className="text-left p-3">
+                    <button
+                      type="button"
+                      onClick={() => setSortDir(d => (d === 'desc' ? 'asc' : 'desc'))}
+                      className="inline-flex items-center gap-1 hover:text-foreground"
+                      aria-label={`Sort by date ${sortDir === 'desc' ? 'oldest first' : 'newest first'}`}
+                    >
+                      Date
+                      {sortDir === 'desc' ? <ArrowDown className="h-3 w-3" /> : <ArrowUp className="h-3 w-3" />}
+                    </button>
+                  </th>
                   <th className="text-left p-3">Asset</th>
                   <th className="text-left p-3">Action</th>
                   <th className="text-right p-3">Qty</th>
