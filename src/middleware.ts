@@ -16,6 +16,8 @@ const PUBLIC_PATHS = [
 ];
 
 function isPublicPath(pathname: string): boolean {
+  // Landing page — public. The page itself redirects authed users to /dashboard.
+  if (pathname === '/') return true;
   if (PUBLIC_PATHS.some(p => pathname === p || pathname.startsWith(p + '/') || pathname.startsWith(p + '?'))) {
     return true;
   }

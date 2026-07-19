@@ -201,13 +201,21 @@ export default function DashboardPage() {
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-16 text-center">
             <BarChart3 className="h-12 w-12 text-muted-foreground mb-4" />
-            <p className="text-lg font-semibold mb-2">No holdings yet</p>
-            <p className="text-sm text-muted-foreground mb-6">
-              Add your first transaction to start tracking your portfolio.
+            <p className="text-lg font-semibold mb-2">Welcome — let&apos;s add your first holdings</p>
+            <p className="text-sm text-muted-foreground mb-6 max-w-md">
+              The fastest way is to import a CSV or XLSX from your broker. You can also add transactions manually or set your target allocation first.
             </p>
-            <Link href="/transactions/new">
-              <Button>Add transaction</Button>
-            </Link>
+            <div className="flex flex-wrap justify-center gap-3">
+              <Link href="/import">
+                <Button>Import from broker</Button>
+              </Link>
+              <Link href="/transactions/new">
+                <Button variant="outline">Add manually</Button>
+              </Link>
+              <Link href="/risk-profile">
+                <Button variant="ghost">Set targets first</Button>
+              </Link>
+            </div>
           </CardContent>
         </Card>
       </AppShell>

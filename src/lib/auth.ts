@@ -130,6 +130,21 @@ export const auth = betterAuth({
     },
   },
   trustedOrigins: resolveTrustedOrigins,
+  // In-memory rate limiting. Single-instance only (loses state on cold start
+  // and doesn't share across replicas) — acceptable at launch scale. Move to
+  // Redis if we ever run multi-instance.
+  rateLimit: {
+    enabled: env.IS_PROD,
+    window: 60,
+    max: 100,
+    customRules: {
+      '/sign-in/email':      { window: 60, max: 5 },
+      '/sign-up/email':      { window: 60, max: 3 },
+      '/forget-password':    { window: 300, max: 3 },
+      '/reset-password':     { window: 300, max: 5 },
+      '/send-verification-email': { window: 300, max: 3 },
+    },
+  },
   plugins: [nextCookies()],
 });
 

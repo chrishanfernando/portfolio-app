@@ -17,6 +17,7 @@ import {
   type RiskTier,
   type EtfRecommendation,
 } from '@/lib/risk-profiling';
+import { GeneralAdviceBanner } from '@/components/general-advice-banner';
 import {
   ChevronLeft,
   ChevronDown,
@@ -287,9 +288,11 @@ export default function RiskProfilePage() {
           <div className="mb-6">
             <h1 className="text-2xl font-bold">Risk Profile</h1>
             <p className="text-sm text-muted-foreground mt-1">
-              Answer 5 questions to get a personalised ETF allocation recommendation.
+              Answer 5 questions to get an educational ETF allocation example.
             </p>
           </div>
+
+          <GeneralAdviceBanner />
 
           {/* Progress */}
           <div className="mb-6">
@@ -355,6 +358,7 @@ export default function RiskProfilePage() {
   return (
     <AppShell>
       <div className="max-w-2xl mx-auto space-y-6">
+        <GeneralAdviceBanner />
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold">Your Risk Profile</h1>

@@ -10,6 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { AlertTriangle, CheckCircle, TrendingUp, TrendingDown } from 'lucide-react';
 import { useProfile } from '@/components/profile-context';
+import { GeneralAdviceBanner } from '@/components/general-advice-banner';
 
 interface CategoryAllocation {
   category: string;
@@ -103,6 +104,8 @@ export default function RebalancePage() {
   return (
     <AppShell>
       <h1 className="text-2xl font-bold mb-6">Rebalancing</h1>
+
+      <GeneralAdviceBanner />
 
       {/* Drift Alert Banner */}
       {driftingCategories.length > 0 && (
