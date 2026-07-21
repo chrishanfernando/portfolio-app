@@ -57,6 +57,13 @@
       "when": 1784290356806,
       "tag": "0007_colorful_luke_cage",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "6",
+      "when": 1784633854942,
+      "tag": "0008_add_assets_targets_profile_id",
+      "breakpoints": true
     }
   ]
 }
