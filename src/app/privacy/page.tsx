@@ -107,11 +107,11 @@ export default function PrivacyPage() {
       <h2 className="text-xl font-semibold mt-6">5. Where your data lives</h2>
       <p>
         Our database is hosted by Turso on AWS (primary region:
-        ap-southeast-2, Sydney). Our application is hosted by Vercel
+        ap-northeast-1, Tokyo). Our application is hosted by Vercel
         (edge and serverless functions run in the region closest to the
         request). Data may be processed in countries other than your own
-        (including the United States). By using the service you consent
-        to the transfer of your information to those locations.
+        (including Japan and the United States). By using the service you
+        consent to the transfer of your information to those locations.
       </p>
 
       <h2 className="text-xl font-semibold mt-6">6. How long we keep it</h2>
