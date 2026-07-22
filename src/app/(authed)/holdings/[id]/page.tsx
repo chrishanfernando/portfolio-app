@@ -503,10 +503,10 @@ export default function AssetDetailPage() {
                           </td>
                           <td className="text-right py-1">
                             <div className="flex gap-1 justify-end">
-                              <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => saveEdit(tx.id)} disabled={saving}>
+                              <Button size="icon" variant="ghost" className="h-7 w-7" aria-label="Save changes" onClick={() => saveEdit(tx.id)} disabled={saving}>
                                 <Check className="h-3.5 w-3.5 text-gain" />
                               </Button>
-                              <Button size="icon" variant="ghost" className="h-7 w-7" onClick={cancelEdit}>
+                              <Button size="icon" variant="ghost" className="h-7 w-7" aria-label="Cancel edit" onClick={cancelEdit}>
                                 <X className="h-3.5 w-3.5" />
                               </Button>
                             </div>
@@ -532,8 +532,9 @@ export default function AssetDetailPage() {
                           <td className="text-right py-2">
                             <div className="flex gap-1 justify-end">
                               <button
-                                className={`h-7 w-7 inline-flex items-center justify-center rounded-md hover:bg-accent ${tx.comment ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'} transition-opacity`}
+                                className={`h-7 w-7 inline-flex items-center justify-center rounded-md hover:bg-accent ${tx.comment ? 'opacity-100' : 'md:opacity-0 md:group-hover:opacity-100'} transition-opacity`}
                                 title={tx.comment || 'Add comment'}
+                                aria-label={tx.comment ? 'Edit comment' : 'Add comment'}
                                 onClick={() => {
                                   if (isCommentEditing) {
                                     setCommentEditId(null);
@@ -545,14 +546,15 @@ export default function AssetDetailPage() {
                               >
                                 <MessageSquare className={`h-3.5 w-3.5 ${tx.comment ? 'text-blue-400' : 'text-muted-foreground'}`} />
                               </button>
-                              <div className="opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
-                                <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => startEdit(tx)}>
+                              <div className="md:opacity-0 md:group-hover:opacity-100 transition-opacity flex gap-1">
+                                <Button size="icon" variant="ghost" className="h-7 w-7" aria-label="Edit transaction" onClick={() => startEdit(tx)}>
                                   <Pencil className="h-3.5 w-3.5" />
                                 </Button>
                                 <Button
                                   size="icon"
                                   variant="ghost"
                                   className="h-7 w-7 text-destructive hover:text-destructive"
+                                  aria-label="Delete transaction"
                                   disabled={deletingId === tx.id}
                                   onClick={() => {
                                     if (confirm('Delete this transaction?')) deleteTx(tx.id);
@@ -576,10 +578,10 @@ export default function AssetDetailPage() {
                                   onKeyDown={e => { if (e.key === 'Enter') saveComment(tx.id); if (e.key === 'Escape') setCommentEditId(null); }}
                                   autoFocus
                                 />
-                                <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => saveComment(tx.id)}>
+                                <Button size="icon" variant="ghost" className="h-7 w-7" aria-label="Save comment" onClick={() => saveComment(tx.id)}>
                                   <Check className="h-3.5 w-3.5 text-gain" />
                                 </Button>
-                                <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => setCommentEditId(null)}>
+                                <Button size="icon" variant="ghost" className="h-7 w-7" aria-label="Cancel" onClick={() => setCommentEditId(null)}>
                                   <X className="h-3.5 w-3.5" />
                                 </Button>
                               </div>

@@ -136,8 +136,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                       </button>
                       <button
                         onClick={(e) => { e.stopPropagation(); setRenamingId(p.id); setRenameText(p.name); }}
-                        className="px-2 py-1.5 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-foreground"
+                        className="px-2 py-1.5 md:opacity-0 md:group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-foreground"
                         title="Rename"
+                        aria-label={`Rename profile ${p.name}`}
                       >
                         <Pencil className="h-3 w-3" />
                       </button>
@@ -312,7 +313,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                     </button>
                     <button
                       onClick={(e) => { e.stopPropagation(); setRenamingId(p.id); setRenameText(p.name); }}
-                      className="px-2 py-1.5 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-foreground"
+                      className="px-2 py-1.5 md:opacity-0 md:group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-foreground"
+                      aria-label={`Rename profile ${p.name}`}
                     >
                       <Pencil className="h-3 w-3" />
                     </button>

@@ -24,6 +24,7 @@ export default function NewTransactionPage() {
   const [isNewAsset, setIsNewAsset] = useState(false);
   const [categories, setCategories] = useState<string[]>([]);
   const [platforms, setPlatforms] = useState<string[]>([]);
+  const [submitting, setSubmitting] = useState(false);
   
   const [form, setForm] = useState({
     assetId: '',
@@ -61,6 +62,8 @@ export default function NewTransactionPage() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (submitting) return;
+    setSubmitting(true);
     try {
       let finalAssetId = parseInt(form.assetId);
 
@@ -110,6 +113,8 @@ export default function NewTransactionPage() {
       }
     } catch {
       toast.error('Error adding transaction');
+    } finally {
+      setSubmitting(false);
     }
   }
 
@@ -269,8 +274,8 @@ export default function NewTransactionPage() {
             </div>
 
             <div className="flex gap-2 pt-4">
-              <Button type="submit">Add Transaction</Button>
-              <Button type="button" variant="outline" onClick={() => router.back()}>Cancel</Button>
+              <Button type="submit" disabled={submitting}>{submitting ? 'Adding…' : 'Add Transaction'}</Button>
+              <Button type="button" variant="outline" onClick={() => router.back()} disabled={submitting}>Cancel</Button>
             </div>
           </form>
         </CardContent>

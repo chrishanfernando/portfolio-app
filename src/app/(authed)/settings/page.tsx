@@ -65,6 +65,7 @@ export default function SettingsPage() {
   const [advisorName, setAdvisorName] = useState('');
   const [advisorFeeBps, setAdvisorFeeBps] = useState('');
   const [savingAdvisor, setSavingAdvisor] = useState(false);
+  const [savingSettings, setSavingSettings] = useState(false);
 
   // CMC account mappings
   const [emailPollEnabled, setEmailPollEnabled] = useState(false);
@@ -234,17 +235,25 @@ export default function SettingsPage() {
   }
 
   async function saveSettings() {
-    const res = await fetch('/api/settings', {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ notificationEmail: email, emailNotifications, analyticsOptOut }),
-    });
+    if (savingSettings) return;
+    setSavingSettings(true);
+    try {
+      const res = await fetch('/api/settings', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ notificationEmail: email, emailNotifications, analyticsOptOut }),
+      });
 
-    if (res.ok) {
-      toast.success('Settings saved');
-    } else {
-      const data = await res.json();
-      toast.error(data.error || 'Failed to save');
+      if (res.ok) {
+        toast.success('Settings saved');
+      } else {
+        const data = await res.json();
+        toast.error(data.error || 'Failed to save');
+      }
+    } catch {
+      toast.error('Failed to save');
+    } finally {
+      setSavingSettings(false);
     }
   }
 
@@ -444,7 +453,7 @@ export default function SettingsPage() {
                         <span className="font-medium">{profile?.name || `Profile ${m.profileId}`}</span>
                         {m.label && <span className="text-muted-foreground ml-2">({m.label})</span>}
                       </div>
-                      <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" onClick={() => deleteMapping(m.id)}>
+                      <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" aria-label="Delete account mapping" onClick={() => deleteMapping(m.id)}>
                         <Trash2 className="h-3.5 w-3.5" />
                       </Button>
                     </div>
@@ -536,7 +545,7 @@ export default function SettingsPage() {
         </Card>
 
         <div className="flex gap-2">
-          <Button onClick={saveSettings}>Save Settings</Button>
+          <Button onClick={saveSettings} disabled={savingSettings}>{savingSettings ? 'Saving…' : 'Save Settings'}</Button>
           <Button variant="outline" onClick={logout} disabled={loggingOut}>{loggingOut ? 'Logging out…' : 'Logout'}</Button>
         </div>
 

@@ -123,7 +123,7 @@ export default function ChartsPage() {
                   <div className="flex items-center gap-2">
                     <CardTitle className="text-sm">{c.displayTicker}</CardTitle>
                     {c.isCustom && (
-                      <button onClick={() => removeCustom(c.displayTicker)} className="text-muted-foreground hover:text-foreground">
+                      <button onClick={() => removeCustom(c.displayTicker)} aria-label={`Remove ${c.displayTicker} chart`} className="text-muted-foreground hover:text-foreground">
                         <X className="h-3.5 w-3.5" />
                       </button>
                     )}
