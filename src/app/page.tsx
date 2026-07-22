@@ -125,7 +125,7 @@ function Features() {
     {
       icon: ShieldCheck,
       title: 'Your data, your control',
-      body: 'Self-hostable. Export anytime. Delete anytime. No ads, no third-party tracking.',
+      body: 'Self-hostable. Export anytime. Delete anytime. No ads, no cross-site tracking.',
     },
   ];
   return (

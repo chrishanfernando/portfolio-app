@@ -73,6 +73,14 @@ export default function PrivacyPage() {
           temporarily contain IP addresses and request metadata.
         </li>
         <li>
+          <strong>Vercel Web Analytics</strong> — privacy-friendly usage
+          analytics. It counts page views and referrers using anonymised,
+          aggregated data (page path, referrer, approximate country, device
+          type) and does <strong>not</strong> use cookies, persistent
+          identifiers, or cross-site tracking. It does not receive your
+          portfolio data, holdings, or transactions.
+        </li>
+        <li>
           <strong>Resend</strong> — sends transactional email
           (verification, password reset, alerts). Resend processes your
           email address and the email content.
@@ -97,11 +105,15 @@ export default function PrivacyPage() {
         </li>
       </ul>
       <p>
-        We do not use third-party advertising, tracking pixels, or
-        third-party analytics SDKs. Product-usage analytics are
-        <strong> first-party only</strong> — anonymised events are stored in our
-        own database (Turso, above) and never shared with an analytics vendor.
-        You can opt out at any time under Settings → Privacy &amp; Analytics.
+        We do not use third-party advertising, ad networks, or cross-site
+        tracking, and we set no marketing cookies. For usage measurement we
+        rely on our own <strong>first-party analytics</strong> (anonymised
+        events stored in our own database, Turso above) together with
+        <strong> Vercel Web Analytics</strong> (described above), which is
+        cookieless and does not identify you. You can opt out of our
+        first-party analytics at any time under Settings → Privacy &amp;
+        Analytics; Vercel Web Analytics collects no personal identifiers, so
+        there is nothing user-specific to opt out of.
       </p>
 
       <h2 className="text-xl font-semibold mt-6">4. Cookies</h2>
