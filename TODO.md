@@ -150,6 +150,12 @@ fees & cost transparency (PR #48).
       Next 16.3 ships.
 - [ ] Periodic dependency review — better-auth and mailparser/imapflow parse
       untrusted input (auth requests, inbound email); keep them current.
+- [ ] **Tighten DMARC policy** — `_dmarc.folioxtracker.com` was published
+      2026-07-22 at `p=none` (monitor-only), and Resend mail passes DMARC
+      (aligned DKIM on the apex + SPF via `send.`). After **~2026-08-05**
+      (≈2 weeks of clean aggregate reports at `rua=mailto:hello@folioxtracker.com`),
+      step the policy up: `p=none` → `p=quarantine` → `p=reject`. Edit the TXT
+      record in Cloudflare; re-check with `dig +short TXT _dmarc.folioxtracker.com`.
 
 ## 8. Product backlog (P1+, from fees design.md "out of scope")
 
