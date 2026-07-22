@@ -13,6 +13,10 @@ const PUBLIC_PATHS = [
   '/disclaimer',
   '/api/auth',
   '/api/cron',
+  // Sentry tunnel (next.config.ts `tunnelRoute`) — client error envelopes POST
+  // here to dodge ad/privacy blockers. Must stay public so logged-out users'
+  // errors (landing/login/signup) still report instead of 307-ing to /login.
+  '/monitoring',
 ];
 
 function isPublicPath(pathname: string): boolean {
