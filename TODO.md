@@ -1,7 +1,11 @@
-# TODO — Launch backlog
+# TODO — Post-launch backlog
+
+**The app is live in production at `folioxtracker.com`** (deployed on Vercel; `main`
+auto-deploys). This started as the pre-launch backlog; remaining items are post-launch
+follow-ups, not launch blockers.
 
 Consolidated from the four-pass pre-launch review (features / security / quality / UX)
-and the fees-cost-transparency work. Updated 2026-07-18.
+and the fees-cost-transparency work. Updated 2026-07-22.
 
 Already shipped, for context: all 8 security findings (PR #43), error boundaries +
 branded 404 (PR #45), mobile nav overflow + dashboard error state (PR #46),
@@ -118,6 +122,13 @@ fees & cost transparency (PR #48).
 
 ## 7. Security & dependency watch
 
+- [ ] **Separate Preview environment from Production** — CONFIRMED via `vercel env ls`
+      (2026-07-22): every env var is a single value shared across `Production, Preview`,
+      including `TURSO_DATABASE_URL` / `TURSO_AUTH_TOKEN` (previews read/write the real prod
+      DB), plus `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`, `NEXT_PUBLIC_APP_URL`. Fix: create
+      a dedicated Turso DB and set Preview-only values for at least the Turso pair (ideally
+      also a Preview `BETTER_AUTH_URL` / `NEXT_PUBLIC_APP_URL`). Then turn on Preview
+      Deployment Protection (see `docs/deployment.md`).
 - [ ] **Full CSP rollout** — `next.config.ts` currently ships only
       `frame-ancestors 'none'`. Add a real `Content-Security-Policy`
       (script-src/style-src etc.) in Report-Only first, then enforce.
