@@ -14,9 +14,10 @@ risk, not effort.
       reason.
 
 ### Security gaps from the auth migration
-- [ ] **Resend custom domain** with SPF + DKIM + DMARC. The sandbox
-      `onboarding@resend.dev` only delivers to your own Resend inbox, so
-      real users won't receive verification emails.
+- [x] **Resend custom domain** — DONE 2026-07-22. Verified on apex
+      `folioxtracker.com` (DKIM + SES return-path in DNS); prod `EMAIL_FROM`
+      = `no-reply@folioxtracker.com`. SPF + DKIM live; **DMARC still to add**
+      (`_dmarc.folioxtracker.com`, `p=none`) — nice-to-have, not a blocker.
 - [ ] **Rate limiting** in Better Auth (`rateLimit: { enabled: true,
       window: 60, max: 10 }` in `src/lib/auth.ts`). Login/signup is
       brute-forceable today.
@@ -29,16 +30,25 @@ risk, not effort.
       in production.
 - [ ] **Patch `npm audit` highs** — 6 high vulnerabilities reported on
       install. At minimum patch those before launch.
-- [ ] **Decide what to do with the IMAP poller**. The `/api/cron/email`
-      handler uses one shared IMAP account and writes to *all* users'
-      `cmcAccountMappings`. As shipped, a malicious user could create a
-      mapping for a CMC account number that belongs to someone else and
-      have their trades imported. Options: remove the feature, gate it
-      behind admin-only, or scope IMAP credentials per-user.
+- [x] **Decide what to do with the IMAP poller** — DECIDED 2026-07-22:
+      **keep disabled at launch.** Verified `EMAIL_POLL_ENABLED=false` in
+      production (settings endpoint returns `emailPollEnabled: false`), so the
+      cron poller and all CMC-mapping endpoints are off — no cross-user
+      exposure. Hardening added in Phase 3 (feature flag; per-profile
+      ownership check on verify; only `verified` mappings ingest) narrows the
+      original risk, but **before this is ever enabled** fix the remaining
+      hole: the verify route
+      (`src/app/api/settings/cmc-accounts/[id]/verify/route.ts`) accepts any
+      PDF that merely *contains* a 6+ digit number matching the mapping — the
+      document isn't validated as a genuine CMC confirmation, so proof of
+      ownership is **forgeable** by anyone who knows a victim's CMC account
+      number. Real fix: per-user IMAP credentials, or non-forgeable
+      verification. Tracked as a post-launch item.
 
 ### Operational basics
-- [ ] **Error monitoring** (Sentry free tier). You will not see prod
-      crashes otherwise.
+- [x] **Error monitoring** — DONE 2026-07-22. Sentry (US region) live and
+      verified; client events tunnel through `/monitoring` to survive ad
+      blockers. See TODO.md §1.
 - [ ] **Real production secrets** — `CRON_SECRET` and `BETTER_AUTH_SECRET`
       rotated to long random values before launch. The `.env.example`
       still says "change-this-…".

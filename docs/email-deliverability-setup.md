@@ -1,6 +1,12 @@
 # Email Deliverability Setup
 
-Status: **code changes done; DNS + Resend dashboard work outstanding.**
+Status: **DONE (verified 2026-07-22).** Domain verified in Resend on the apex
+`folioxtracker.com`: DKIM (`resend._domainkey.folioxtracker.com`) and the SES
+return-path (`send.folioxtracker.com` MX → `feedback-smtp.ap-northeast-1.amazonses.com`,
+SPF `include:amazonses.com`) are live in DNS. Production `EMAIL_FROM` is
+`no-reply@folioxtracker.com` (apex — **not** the `mail.` subdomain some older
+notes/`.env.example` reference). Remaining nice-to-have: publish a `_dmarc.folioxtracker.com`
+record (`v=DMARC1; p=none` to start) — not currently present.
 
 The app's email senders ([src/lib/email.ts](../src/lib/email.ts)) now require a verified sending domain — `EMAIL_FROM` no longer falls back to the Resend sandbox. Until the steps below are completed, verification, password-reset, and rebalance-alert emails will fail in any environment where `EMAIL_FROM` is unset, and would land in spam if pointed at an unverified domain.
 
