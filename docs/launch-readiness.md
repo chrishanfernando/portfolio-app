@@ -14,9 +14,10 @@ risk, not effort.
       reason.
 
 ### Security gaps from the auth migration
-- [ ] **Resend custom domain** with SPF + DKIM + DMARC. The sandbox
-      `onboarding@resend.dev` only delivers to your own Resend inbox, so
-      real users won't receive verification emails.
+- [x] **Resend custom domain** — DONE 2026-07-22. Verified on apex
+      `folioxtracker.com` (DKIM + SES return-path in DNS); prod `EMAIL_FROM`
+      = `no-reply@folioxtracker.com`. SPF + DKIM live; **DMARC still to add**
+      (`_dmarc.folioxtracker.com`, `p=none`) — nice-to-have, not a blocker.
 - [ ] **Rate limiting** in Better Auth (`rateLimit: { enabled: true,
       window: 60, max: 10 }` in `src/lib/auth.ts`). Login/signup is
       brute-forceable today.
@@ -37,8 +38,9 @@ risk, not effort.
       behind admin-only, or scope IMAP credentials per-user.
 
 ### Operational basics
-- [ ] **Error monitoring** (Sentry free tier). You will not see prod
-      crashes otherwise.
+- [x] **Error monitoring** — DONE 2026-07-22. Sentry (US region) live and
+      verified; client events tunnel through `/monitoring` to survive ad
+      blockers. See TODO.md §1.
 - [ ] **Real production secrets** — `CRON_SECRET` and `BETTER_AUTH_SECRET`
       rotated to long random values before launch. The `.env.example`
       still says "change-this-…".

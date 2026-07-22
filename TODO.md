@@ -32,9 +32,12 @@ fees & cost transparency (PR #48).
       delete the stale `drizzle/0004_aromatic_clea.sql` +
       `drizzle/meta/0004_aromatic_clea_snapshot.json.wip` (superseded by
       migration 0007 on main).
-- [ ] **Set `SENTRY_DSN` / `NEXT_PUBLIC_SENTRY_DSN` in production** — error
-      reporting in `apiError()`, `error.tsx`, and `global-error.tsx` is already
-      wired but no-ops until the DSN exists.
+- [x] **Set `SENTRY_DSN` / `NEXT_PUBLIC_SENTRY_DSN` in production** — done
+      2026-07-22 (US region). Env vars set on Production + Preview; verified
+      end-to-end (envelope accepted, HTTP 200). Client events tunnel through
+      `/monitoring` (PR #66) to survive ad blockers; `/monitoring` allowlisted
+      in middleware. Error reporting in `apiError()`, `error.tsx`, and
+      `global-error.tsx` is now live.
 
 ## 2. Fees feature follow-ups (openspec/changes/fees-cost-transparency)
 
