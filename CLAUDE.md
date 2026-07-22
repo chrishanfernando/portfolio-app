@@ -165,11 +165,23 @@ README; the `risk_profiles` table remains in `schema.ts` (no drop migration) so 
 - **Git**: feature branches PR'd into `main`; CI = lint/typecheck/build (fresh SQLite:
   `TURSO_DATABASE_URL=file:ci.db` + placeholder secrets), CodeQL. Never commit directly
   to main.
+- **Deploy**: hosted on **Vercel** (project `folioxtracker`, connected to this GitHub repo
+  via Vercel's Git integration; production branch = `main`). **Merging a PR to `main`
+  auto-builds and promotes to production** at `folioxtracker.com` — there is no separate
+  deploy step. PR-branch pushes get their own **preview** deployment. Because
+  `npm run build` runs `drizzle-kit migrate` first (see build gotchas), **a merge to `main`
+  runs pending migrations against the production Turso DB as part of the deploy** — review
+  migrations accordingly. To ship without a merge, promote a deployment (or `vercel --prod`)
+  from the Vercel dashboard; to undo a bad deploy, use Instant Rollback there.
+  See `docs/deployment.md` for preview-URL details and where to find a PR's preview link.
 - `TODO.md` at the repo root is the consolidated launch backlog — check it before
   proposing "what's next", and keep it updated as items land.
 
-## Current known state (as of 2026-07-19)
+## Current known state (as of 2026-07-22)
 
+- **Live in production**: the app is deployed and serving at `folioxtracker.com` (Vercel,
+  `main` branch auto-deploys — see the Deploy note above). Treat `main` as production:
+  what merges, ships.
 - **Brand**: the product is **FolioX Tracker** at `folioxtracker.com`; legal entity is
   FolioX Tracker (sole operator); support/contact is `hello@folioxtracker.com`. The old
   `{{BRAND}}` / `{{LEGAL_ENTITY}}` / `{{SUPPORT_EMAIL}}` placeholders were filled in
