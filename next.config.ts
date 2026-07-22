@@ -34,6 +34,9 @@ const withSentry = process.env.SENTRY_DSN
       project: process.env.SENTRY_PROJECT,
       silent: !process.env.CI,
       widenClientFileUpload: true,
+      // Route client events through our own domain so ad/privacy blockers
+      // (which block ingest.*.sentry.io) can't drop real users' error reports.
+      tunnelRoute: "/monitoring",
       // Only upload source maps if the auth token is present.
       sourcemaps: process.env.SENTRY_AUTH_TOKEN ? undefined : { disable: true },
       disableLogger: true,
