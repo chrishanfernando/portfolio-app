@@ -42,6 +42,14 @@ export const ASSET_MAP: Record<string, AssetInfo> = {
     category: 'China',
     platform: 'Stake',
   },
+  'NYSE:BRK.B': {
+    symbol: 'NYSE:BRK.B',
+    name: 'Berkshire Hathaway Inc. Class B',
+    displayTicker: 'BRK.B',
+    yahooSymbol: 'BRK-B',
+    category: 'USA',
+    platform: 'Stake',
+  },
 };
 
 // Assets that previously appeared in your records but are now closed/delisted.
@@ -54,6 +62,7 @@ export const INACTIVE_ASSETS: Record<string, AssetInfo> = {};
 // US tickers that need explicit mapping to NASDAQ/NYSE/OTCMKTS.
 export const STAKE_US_TICKER_MAP: Record<string, string> = {
   'TCEHY': 'OTCMKTS:TCEHY',
+  'BRK.B': 'NYSE:BRK.B',
 };
 
 export function resolveStakeTicker(stakeTicker: string): string | null {
