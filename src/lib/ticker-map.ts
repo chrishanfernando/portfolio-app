@@ -42,6 +42,46 @@ export const ASSET_MAP: Record<string, AssetInfo> = {
     category: 'China',
     platform: 'Stake',
   },
+  'CURRENCY:BTCAUD': {
+    symbol: 'CURRENCY:BTCAUD',
+    name: 'Bitcoin',
+    displayTicker: 'BTC',
+    yahooSymbol: 'BTC-AUD',
+    category: 'Crypto',
+    platform: 'Swyftx',
+  },
+  'CURRENCY:ETHAUD': {
+    symbol: 'CURRENCY:ETHAUD',
+    name: 'Ethereum',
+    displayTicker: 'ETH',
+    yahooSymbol: 'ETH-AUD',
+    category: 'Crypto',
+    platform: 'Swyftx',
+  },
+  'CURRENCY:MANAAUD': {
+    symbol: 'CURRENCY:MANAAUD',
+    name: 'Decentraland',
+    displayTicker: 'MANA',
+    yahooSymbol: 'MANA-AUD',
+    category: 'Crypto',
+    platform: 'Swyftx',
+  },
+  'CURRENCY:POLAUD': {
+    symbol: 'CURRENCY:POLAUD',
+    name: 'Polygon Ecosystem Token',
+    displayTicker: 'POL',
+    yahooSymbol: 'POL-AUD',
+    category: 'Crypto',
+    platform: 'Swyftx',
+  },
+  'CURRENCY:USDCAUD': {
+    symbol: 'CURRENCY:USDCAUD',
+    name: 'USD Coin',
+    displayTicker: 'USDC',
+    yahooSymbol: 'USDC-AUD',
+    category: 'Crypto',
+    platform: 'Swyftx',
+  },
 };
 
 // Assets that previously appeared in your records but are now closed/delisted.
@@ -65,7 +105,13 @@ export function resolveStakeTicker(stakeTicker: string): string | null {
 
 // --- Swyftx --------------------------------------------------------------
 // Swyftx exports use bare coin codes (e.g. "BTC", "ETH").
-export const SWYFTX_TICKER_MAP: Record<string, string> = {};
+export const SWYFTX_TICKER_MAP: Record<string, string> = {
+  'BTC': 'CURRENCY:BTCAUD',
+  'ETH': 'CURRENCY:ETHAUD',
+  'MANA': 'CURRENCY:MANAAUD',
+  'POL': 'CURRENCY:POLAUD',
+  'USDC': 'CURRENCY:USDCAUD',
+};
 
 // --- Independent Reserve -------------------------------------------------
 // IR uses bare coin codes (e.g. "BTC", "ETH", "XRP").
