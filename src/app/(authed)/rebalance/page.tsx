@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { AppShell } from '@/components/layout/app-shell';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -10,6 +10,8 @@ import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { AlertTriangle, CheckCircle, TrendingUp, TrendingDown } from 'lucide-react';
 import { useProfile } from '@/components/profile-context';
+import { LoadError } from '@/components/load-error';
+import { PageSkeleton } from '@/components/page-skeleton';
 import { GeneralAdviceBanner } from '@/components/general-advice-banner';
 
 interface CategoryAllocation {
@@ -39,6 +41,7 @@ export default function RebalancePage() {
   const { profileFetch, activeProfileId } = useProfile();
   const [drift, setDrift] = useState<CategoryAllocation[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [investAmount, setInvestAmount] = useState('5000');
   const [recommendations, setRecommendations] = useState<BuyRec[]>([]);
   const [projectedAllocation, setProjectedAllocation] = useState<ProjectedAlloc[]>([]);
@@ -47,23 +50,30 @@ export default function RebalancePage() {
   const [targets, setTargets] = useState<{ category: string; targetPct: number; threshold: number }[]>([]);
   const [targetInputs, setTargetInputs] = useState<string[]>([]);
 
-  useEffect(() => {
+  const fetchData = useCallback(async () => {
     setLoading(true);
-    profileFetch('/api/rebalance')
-      .then(r => r.ok ? r.json() : [])
-      .then((data) => {
-        const arr: CategoryAllocation[] = Array.isArray(data) ? data : [];
-        setDrift(arr);
-        const t = arr.map((d) => ({
-          category: d.category,
-          targetPct: d.targetPct,
-          threshold: d.threshold,
-        }));
-        setTargets(t);
-        setTargetInputs(t.map((d) => d.targetPct > 0 ? String(d.targetPct) : ''));
-      })
-      .finally(() => setLoading(false));
-  }, [activeProfileId]);
+    setLoadError(false);
+    try {
+      const res = await profileFetch('/api/rebalance');
+      if (!res.ok) throw new Error(`rebalance fetch failed: ${res.status}`);
+      const data = await res.json();
+      const arr: CategoryAllocation[] = Array.isArray(data) ? data : [];
+      setDrift(arr);
+      const t = arr.map((d) => ({
+        category: d.category,
+        targetPct: d.targetPct,
+        threshold: d.threshold,
+      }));
+      setTargets(t);
+      setTargetInputs(t.map((d) => d.targetPct > 0 ? String(d.targetPct) : ''));
+    } catch {
+      setLoadError(true);
+    } finally {
+      setLoading(false);
+    }
+  }, [profileFetch]);
+
+  useEffect(() => { fetchData(); }, [activeProfileId, fetchData]);
 
   async function saveTargets() {
     setSaving(true);
@@ -73,12 +83,15 @@ export default function RebalancePage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ targets }),
       });
+      if (!res.ok) throw new Error(`save failed: ${res.status}`);
       const data = await res.json();
       setDrift(data);
       setEditing(false);
       setRecommendations([]);
       setProjectedAllocation([]);
       toast.success('Targets saved');
+    } catch {
+      toast.error('Failed to save targets');
     } finally {
       setSaving(false);
     }
@@ -99,7 +112,16 @@ export default function RebalancePage() {
   const driftingCategories = drift.filter(d => d.needsRebalance);
   const hasTargetsSet = drift.some(d => d.targetPct > 0);
 
-  if (loading) return <AppShell><p className="text-muted-foreground">Loading...</p></AppShell>;
+  if (loading) return <AppShell><PageSkeleton variant="cards" /></AppShell>;
+
+  if (loadError) {
+    return (
+      <AppShell>
+        <h1 className="text-2xl font-bold mb-6">Rebalance</h1>
+        <LoadError onRetry={fetchData} />
+      </AppShell>
+    );
+  }
 
   return (
     <AppShell>
@@ -111,8 +133,8 @@ export default function RebalancePage() {
       {driftingCategories.length > 0 && (
         <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-4 mb-6">
           <div className="flex items-center gap-2 mb-2">
-            <AlertTriangle className="h-5 w-5 text-red-500" />
-            <p className="font-semibold text-red-500">Portfolio out of balance</p>
+            <AlertTriangle className="h-5 w-5 text-loss" />
+            <p className="font-semibold text-loss">Portfolio out of balance</p>
           </div>
           <p className="text-sm text-muted-foreground">
             {driftingCategories.length} {driftingCategories.length === 1 ? 'category has' : 'categories have'} drifted
@@ -124,8 +146,8 @@ export default function RebalancePage() {
       {hasTargetsSet && driftingCategories.length === 0 && (
         <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-4 mb-6">
           <div className="flex items-center gap-2">
-            <CheckCircle className="h-5 w-5 text-green-500" />
-            <p className="font-semibold text-green-500">Portfolio is balanced</p>
+            <CheckCircle className="h-5 w-5 text-gain" />
+            <p className="font-semibold text-gain">Portfolio is balanced</p>
           </div>
           <p className="text-sm text-muted-foreground">All categories are within their drift thresholds.</p>
         </div>
@@ -196,7 +218,7 @@ export default function RebalancePage() {
                   <div className="col-span-3 text-right">
                     {d.targetPct > 0 ? (
                       <span className={`text-sm flex items-center justify-end gap-1 ${
-                        Math.abs(d.driftPct) > d.threshold ? 'text-red-500' : 'text-muted-foreground'
+                        Math.abs(d.driftPct) > d.threshold ? 'text-loss' : 'text-muted-foreground'
                       }`}>
                         {d.driftPct > 0 ? (
                           <TrendingUp className="h-3 w-3" />
@@ -235,7 +257,7 @@ export default function RebalancePage() {
               <div className="col-span-2 text-right">
                 {drift.reduce((s, d) => s + d.currentPct, 0).toFixed(1)}%
               </div>
-              <div className={`col-span-2 text-right ${editing && Math.abs(totalTarget - 100) > 0.1 ? 'text-red-500' : ''}`}>
+              <div className={`col-span-2 text-right ${editing && Math.abs(totalTarget - 100) > 0.1 ? 'text-loss' : ''}`}>
                 {totalTarget > 0 ? `${totalTarget.toFixed(1)}%` : '—'}
               </div>
               <div className="col-span-3" />
@@ -244,7 +266,7 @@ export default function RebalancePage() {
             {editing && (
               <div className="flex items-center justify-between pt-2">
                 {Math.abs(totalTarget - 100) > 0.1 && (
-                  <p className="text-sm text-red-500">Targets must sum to 100%</p>
+                  <p className="text-sm text-loss">Targets must sum to 100%</p>
                 )}
                 <Button
                   onClick={saveTargets}
@@ -302,7 +324,7 @@ export default function RebalancePage() {
                       <div key={r.category} className="border rounded-lg p-3">
                         <div className="flex justify-between mb-2">
                           <span className="font-medium">{r.category}</span>
-                          <span className="text-green-500 font-medium">
+                          <span className="text-gain font-medium">
                             ${categorySpend.toLocaleString(undefined, { maximumFractionDigits: 0 })}
                           </span>
                         </div>
@@ -350,7 +372,7 @@ export default function RebalancePage() {
                       <div key={p.category} className="grid grid-cols-4 gap-2 text-sm">
                         <div className="font-medium">{p.category}</div>
                         <div className="text-right text-muted-foreground">{p.currentPct.toFixed(1)}%</div>
-                        <div className={`text-right ${improved ? 'text-green-500' : ''}`}>
+                        <div className={`text-right ${improved ? 'text-gain' : ''}`}>
                           {p.projectedPct.toFixed(1)}%
                         </div>
                         <div className="text-right">{p.targetPct > 0 ? `${p.targetPct.toFixed(1)}%` : '—'}</div>

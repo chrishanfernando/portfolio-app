@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { AppShell } from '@/components/layout/app-shell';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -8,8 +8,10 @@ import { Button } from '@/components/ui/button';
 import { ZoomableChart } from '@/components/zoomable-chart';
 import { TimeFrameFilter, filterByTimeFrame, type TimeFrame } from '@/components/time-frame-filter';
 import { useProfile } from '@/components/profile-context';
-import { Plus, X, Search } from 'lucide-react';
+import { Plus, X, Search, LineChart } from 'lucide-react';
 import Link from 'next/link';
+import { LoadError } from '@/components/load-error';
+import { PageSkeleton } from '@/components/page-skeleton';
 
 interface ChartData {
   assetId?: number;
@@ -25,18 +27,28 @@ export default function ChartsPage() {
   const [charts, setCharts] = useState<ChartData[]>([]);
   const [customCharts, setCustomCharts] = useState<ChartData[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [timeFrame, setTimeFrame] = useState<TimeFrame>('1Y');
   const [searchTicker, setSearchTicker] = useState('');
   const [searching, setSearching] = useState(false);
   const [searchError, setSearchError] = useState('');
 
-  useEffect(() => {
+  const fetchData = useCallback(async () => {
     setLoading(true);
-    profileFetch('/api/holdings/charts')
-      .then(r => r.ok ? r.json() : [])
-      .then(data => setCharts(Array.isArray(data) ? data : []))
-      .finally(() => setLoading(false));
-  }, [activeProfileId]);
+    setLoadError(false);
+    try {
+      const res = await profileFetch('/api/holdings/charts');
+      if (!res.ok) throw new Error(`charts fetch failed: ${res.status}`);
+      const data = await res.json();
+      setCharts(Array.isArray(data) ? data : []);
+    } catch {
+      setLoadError(true);
+    } finally {
+      setLoading(false);
+    }
+  }, [profileFetch]);
+
+  useEffect(() => { fetchData(); }, [activeProfileId, fetchData]);
 
   async function addTicker() {
     const ticker = searchTicker.trim().toUpperCase();
@@ -75,7 +87,16 @@ export default function ChartsPage() {
     setCustomCharts(prev => prev.filter(c => c.displayTicker !== ticker));
   }
 
-  if (loading) return <AppShell><p className="text-muted-foreground">Loading...</p></AppShell>;
+  if (loading) return <AppShell><PageSkeleton variant="cards" /></AppShell>;
+
+  if (loadError) {
+    return (
+      <AppShell>
+        <h1 className="text-2xl font-bold mb-6">Price Charts</h1>
+        <LoadError onRetry={fetchData} />
+      </AppShell>
+    );
+  }
 
   const allCharts = [...charts, ...customCharts];
 
@@ -102,9 +123,24 @@ export default function ChartsPage() {
           <Plus className="h-4 w-4 mr-1" />
           {searching ? 'Loading...' : 'Add'}
         </Button>
-        {searchError && <p className="text-xs text-red-500 self-center">{searchError}</p>}
+        {searchError && <p className="text-xs text-loss self-center">{searchError}</p>}
       </div>
 
+      {allCharts.length === 0 ? (
+        <Card>
+          <CardContent className="flex flex-col items-center justify-center py-16 text-center">
+            <LineChart className="h-12 w-12 text-muted-foreground mb-4" />
+            <p className="text-lg font-semibold mb-2">No charts yet</p>
+            <p className="text-sm text-muted-foreground mb-6 max-w-sm">
+              Add a ticker above to chart any stock or ETF, or import your holdings to see
+              their price history automatically.
+            </p>
+            <Link href="/import">
+              <Button variant="outline">Import from broker</Button>
+            </Link>
+          </CardContent>
+        </Card>
+      ) : (
       <div className="grid gap-4 md:grid-cols-2">
         {allCharts.map((c) => {
           const filtered = filterByTimeFrame(c.priceHistory, timeFrame);
@@ -123,13 +159,13 @@ export default function ChartsPage() {
                   <div className="flex items-center gap-2">
                     <CardTitle className="text-sm">{c.displayTicker}</CardTitle>
                     {c.isCustom && (
-                      <button onClick={() => removeCustom(c.displayTicker)} className="text-muted-foreground hover:text-foreground">
+                      <button onClick={() => removeCustom(c.displayTicker)} aria-label={`Remove ${c.displayTicker} chart`} className="text-muted-foreground hover:text-foreground">
                         <X className="h-3.5 w-3.5" />
                       </button>
                     )}
                   </div>
                   <div className="text-right">
-                    <span className={`text-xs font-medium ${changePct >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                    <span className={`text-xs font-medium ${changePct >= 0 ? 'text-gain' : 'text-loss'}`}>
                       {changePct >= 0 ? '+' : ''}{changePct.toFixed(1)}%
                     </span>
                     {drawdownPct < -0.5 && (
@@ -161,6 +197,7 @@ export default function ChartsPage() {
           return <div key={c.displayTicker}>{chartCard}</div>;
         })}
       </div>
+      )}
     </AppShell>
   );
 }

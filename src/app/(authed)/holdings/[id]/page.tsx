@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { ZoomableChart } from '@/components/zoomable-chart';
 import { TimeFrameFilter, filterByTimeFrame, type TimeFrame } from '@/components/time-frame-filter';
 import { toast } from 'sonner';
@@ -15,6 +16,7 @@ import { Pencil, Trash2, Check, X, MessageSquare } from 'lucide-react';
 import { formatDate } from '@/lib/format';
 import { useProfile } from '@/components/profile-context';
 import { useChartColors } from '@/lib/theme-colors';
+import { PageSkeleton } from '@/components/page-skeleton';
 
 interface Transaction {
   id: number;
@@ -60,6 +62,7 @@ export default function AssetDetailPage() {
   const [editState, setEditState] = useState<EditState>({ date: '', action: '', quantity: '', unitPriceAud: '', source: '' });
   const [saving, setSaving] = useState(false);
   const [deletingId, setDeletingId] = useState<number | null>(null);
+  const [pendingDeleteId, setPendingDeleteId] = useState<number | null>(null);
   const [commentEditId, setCommentEditId] = useState<number | null>(null);
   const [commentText, setCommentText] = useState('');
   const [editingMer, setEditingMer] = useState(false);
@@ -236,8 +239,22 @@ export default function AssetDetailPage() {
     }
   }
 
-  if (loading) return <AppShell><p className="text-muted-foreground">Loading...</p></AppShell>;
-  if (!data) return <AppShell><p>Asset not found</p></AppShell>;
+  if (loading) return <AppShell><PageSkeleton variant="cards" /></AppShell>;
+  if (!data) {
+    return (
+      <AppShell>
+        <Card>
+          <CardContent className="flex flex-col items-center justify-center py-16 text-center">
+            <p className="text-lg font-semibold mb-2">Asset not found</p>
+            <p className="text-sm text-muted-foreground mb-6 max-w-sm">
+              This holding doesn&apos;t exist, or it isn&apos;t part of the active profile.
+            </p>
+            <Button variant="outline" onClick={() => router.push('/holdings')}>Back to holdings</Button>
+          </CardContent>
+        </Card>
+      </AppShell>
+    );
+  }
 
   const { asset, holding, priceHistory, transactions } = data;
 
@@ -338,7 +355,7 @@ export default function AssetDetailPage() {
               <p className="text-sm text-muted-foreground">
                 Total: ${(holding.quantity * parseFloat(closePrice || '0')).toLocaleString(undefined, { maximumFractionDigits: 0 })}
                 {' · '}
-                P&L: <span className={(holding.quantity * parseFloat(closePrice || '0') - holding.totalCost) >= 0 ? 'text-green-500' : 'text-red-500'}>
+                P&L: <span className={(holding.quantity * parseFloat(closePrice || '0') - holding.totalCost) >= 0 ? 'text-gain' : 'text-loss'}>
                   ${(holding.quantity * parseFloat(closePrice || '0') - holding.totalCost).toLocaleString(undefined, { maximumFractionDigits: 0 })}
                 </span>
               </p>
@@ -363,7 +380,7 @@ export default function AssetDetailPage() {
         <Card>
           <CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground">P&L</CardTitle></CardHeader>
           <CardContent>
-            <p className={`text-xl font-bold ${holding.profitLoss >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+            <p className={`text-xl font-bold ${holding.profitLoss >= 0 ? 'text-gain' : 'text-loss'}`}>
               ${holding.profitLoss.toLocaleString(undefined, { maximumFractionDigits: 0 })} ({holding.profitLossPct.toFixed(1)}%)
             </p>
           </CardContent>
@@ -410,7 +427,7 @@ export default function AssetDetailPage() {
         <CardHeader><CardTitle>Transactions</CardTitle></CardHeader>
         <CardContent>
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+            <table className="w-full text-sm tabular-nums">
               <thead>
                 <tr className="border-b text-muted-foreground">
                   <th
@@ -503,10 +520,10 @@ export default function AssetDetailPage() {
                           </td>
                           <td className="text-right py-1">
                             <div className="flex gap-1 justify-end">
-                              <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => saveEdit(tx.id)} disabled={saving}>
-                                <Check className="h-3.5 w-3.5 text-green-500" />
+                              <Button size="icon" variant="ghost" className="h-7 w-7" aria-label="Save changes" onClick={() => saveEdit(tx.id)} disabled={saving}>
+                                <Check className="h-3.5 w-3.5 text-gain" />
                               </Button>
-                              <Button size="icon" variant="ghost" className="h-7 w-7" onClick={cancelEdit}>
+                              <Button size="icon" variant="ghost" className="h-7 w-7" aria-label="Cancel edit" onClick={cancelEdit}>
                                 <X className="h-3.5 w-3.5" />
                               </Button>
                             </div>
@@ -532,8 +549,9 @@ export default function AssetDetailPage() {
                           <td className="text-right py-2">
                             <div className="flex gap-1 justify-end">
                               <button
-                                className={`h-7 w-7 inline-flex items-center justify-center rounded-md hover:bg-accent ${tx.comment ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'} transition-opacity`}
+                                className={`h-7 w-7 inline-flex items-center justify-center rounded-md hover:bg-accent ${tx.comment ? 'opacity-100' : 'md:opacity-0 md:group-hover:opacity-100'} transition-opacity`}
                                 title={tx.comment || 'Add comment'}
+                                aria-label={tx.comment ? 'Edit comment' : 'Add comment'}
                                 onClick={() => {
                                   if (isCommentEditing) {
                                     setCommentEditId(null);
@@ -545,18 +563,17 @@ export default function AssetDetailPage() {
                               >
                                 <MessageSquare className={`h-3.5 w-3.5 ${tx.comment ? 'text-blue-400' : 'text-muted-foreground'}`} />
                               </button>
-                              <div className="opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
-                                <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => startEdit(tx)}>
+                              <div className="md:opacity-0 md:group-hover:opacity-100 transition-opacity flex gap-1">
+                                <Button size="icon" variant="ghost" className="h-7 w-7" aria-label="Edit transaction" onClick={() => startEdit(tx)}>
                                   <Pencil className="h-3.5 w-3.5" />
                                 </Button>
                                 <Button
                                   size="icon"
                                   variant="ghost"
                                   className="h-7 w-7 text-destructive hover:text-destructive"
+                                  aria-label="Delete transaction"
                                   disabled={deletingId === tx.id}
-                                  onClick={() => {
-                                    if (confirm('Delete this transaction?')) deleteTx(tx.id);
-                                  }}
+                                  onClick={() => setPendingDeleteId(tx.id)}
                                 >
                                   <Trash2 className="h-3.5 w-3.5" />
                                 </Button>
@@ -576,10 +593,10 @@ export default function AssetDetailPage() {
                                   onKeyDown={e => { if (e.key === 'Enter') saveComment(tx.id); if (e.key === 'Escape') setCommentEditId(null); }}
                                   autoFocus
                                 />
-                                <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => saveComment(tx.id)}>
-                                  <Check className="h-3.5 w-3.5 text-green-500" />
+                                <Button size="icon" variant="ghost" className="h-7 w-7" aria-label="Save comment" onClick={() => saveComment(tx.id)}>
+                                  <Check className="h-3.5 w-3.5 text-gain" />
                                 </Button>
-                                <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => setCommentEditId(null)}>
+                                <Button size="icon" variant="ghost" className="h-7 w-7" aria-label="Cancel" onClick={() => setCommentEditId(null)}>
                                   <X className="h-3.5 w-3.5" />
                                 </Button>
                               </div>
@@ -595,6 +612,31 @@ export default function AssetDetailPage() {
           </div>
         </CardContent>
       </Card>
+
+      <Dialog open={pendingDeleteId !== null} onOpenChange={(open) => { if (!open) setPendingDeleteId(null); }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete transaction?</DialogTitle>
+            <DialogDescription>
+              This permanently removes the transaction and recalculates your holdings. This can&apos;t be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setPendingDeleteId(null)}>Cancel</Button>
+            <Button
+              variant="destructive"
+              disabled={deletingId !== null}
+              onClick={() => {
+                const id = pendingDeleteId;
+                setPendingDeleteId(null);
+                if (id !== null) deleteTx(id);
+              }}
+            >
+              {deletingId !== null ? 'Deleting…' : 'Delete'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </AppShell>
   );
 }
